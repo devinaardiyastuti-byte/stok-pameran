@@ -1,0 +1,2212 @@
+<!DOCTYPE html>
+<html lang="id">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>GMB SLO - Sistem Persediaan & Input Mutasi Barang (GitHub Pages)</title>
+  <script src="https://cdn.tailwindcss.com"></script>
+  <link href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@400;500;600;700;800&display=swap" rel="stylesheet">
+  <style>
+    body { font-family: 'Plus Jakarta Sans', sans-serif; }
+    .custom-scrollbar::-webkit-scrollbar { width: 6px; height: 6px; }
+    .custom-scrollbar::-webkit-scrollbar-track { background: #f1f5f9; }
+    .custom-scrollbar::-webkit-scrollbar-thumb { background: #cbd5e1; border-radius: 4px; }
+  </style>
+</head>
+<body class="bg-slate-100 text-slate-800 min-h-screen flex flex-col font-sans">
+
+  <!-- HEADER -->
+  <header class="bg-slate-900 text-white shadow-xl sticky top-0 z-40">
+    <div class="max-w-7xl mx-auto px-4 sm:px-6 py-3.5 flex flex-col sm:flex-row items-center justify-between gap-3">
+      <div class="flex items-center space-x-3">
+        <div class="w-10 h-10 rounded-2xl bg-gradient-to-tr from-amber-500 via-amber-400 to-yellow-300 flex items-center justify-center font-black text-slate-950 text-xl shadow-lg ring-2 ring-amber-400/30">
+          G
+        </div>
+        <div>
+          <div class="flex items-center gap-2">
+            <h1 class="text-base sm:text-lg font-extrabold text-white">PT. GRAHA MULTI BINTANG</h1>
+            <span class="bg-amber-500/20 text-amber-300 border border-amber-400/40 text-[10px] font-bold px-2 py-0.5 rounded-full uppercase">GMB SLO</span>
+          </div>
+          <p class="text-xs text-slate-300">Sistem Persediaan & Input Data Masuk / Keluar • Depo DC Solo</p>
+        </div>
+      </div>
+
+      <div class="flex items-center gap-3 text-xs">
+        <span class="bg-slate-800 border border-slate-700 px-3 py-1.5 rounded-xl text-slate-300 font-semibold" id="totalSkuBadge">
+          Memuat data SKU...
+        </span>
+        <span class="bg-emerald-950/80 border border-emerald-500/40 text-emerald-300 px-3 py-1.5 rounded-xl font-bold flex items-center gap-1.5">
+          <span class="w-2 h-2 rounded-full bg-emerald-400 animate-pulse"></span>
+          <span>GitHub Online Edition</span>
+        </span>
+      </div>
+    </div>
+
+    <!-- SUB NAV BAR -->
+    <div class="bg-slate-950/80 border-t border-slate-800/80 px-4 sm:px-6">
+      <div class="max-w-7xl mx-auto flex items-center gap-2 overflow-x-auto py-2">
+        <button onclick="switchTab('input')" id="navTabInput" class="px-3.5 py-1.5 rounded-lg text-xs sm:text-sm font-bold bg-amber-500 text-slate-950 shadow">
+          Input Transaksi (Masuk/Keluar)
+        </button>
+        <button onclick="switchTab('laporan')" id="navTabLaporan" class="px-3.5 py-1.5 rounded-lg text-xs sm:text-sm font-semibold text-slate-300 hover:text-white hover:bg-slate-800">
+          Laporan Stok Persediaan
+        </button>
+        <button onclick="switchTab('riwayat')" id="navTabRiwayat" class="px-3.5 py-1.5 rounded-lg text-xs sm:text-sm font-semibold text-slate-300 hover:text-white hover:bg-slate-800">
+          Riwayat Mutasi Transaksi
+        </button>
+      </div>
+    </div>
+  </header>
+
+  <!-- MAIN CONTAINER -->
+  <main class="flex-1 max-w-7xl w-full mx-auto px-4 sm:px-6 py-6 sm:py-8 space-y-6">
+
+    <!-- VIEW 1: FORM INPUT TRANSAKSI (LENGKAP DENGAN BARANG TERPILIH) -->
+    <section id="viewInput" class="max-w-5xl mx-auto space-y-6">
+      <!-- Selector Masuk / Keluar -->
+      <div class="bg-white rounded-2xl p-2 shadow-sm border border-slate-200 grid grid-cols-2 gap-2">
+        <button type="button" onclick="setTipe('KELUAR')" id="btnTipeKeluar" class="py-3.5 px-4 rounded-xl font-bold text-sm sm:text-base bg-rose-600 text-white shadow-lg shadow-rose-600/30 transition">
+          Pengeluaran (Barang Keluar / Laku)
+        </button>
+        <button type="button" onclick="setTipe('MASUK')" id="btnTipeMasuk" class="py-3.5 px-4 rounded-xl font-bold text-sm sm:text-base text-slate-600 hover:bg-slate-100 transition">
+          Pemasukan (Barang Masuk / Tambah Stok)
+        </button>
+      </div>
+
+      <!-- Main Form -->
+      <div class="bg-white rounded-2xl border border-slate-200 shadow-sm overflow-hidden">
+        <div id="formBanner" class="px-6 py-4 bg-rose-50 border-b border-rose-100 flex items-center justify-between">
+          <div>
+            <h2 id="formTitle" class="text-base sm:text-lg font-black text-slate-900">
+              Form Input Pengeluaran Barang / Laku (Outbound)
+            </h2>
+            <p id="formDesc" class="text-xs text-slate-500">
+              Mencatat penjualan / barang keluar harian untuk update otomatis laporan stok
+            </p>
+          </div>
+          <span id="tipeBadge" class="px-3 py-1 rounded-full text-xs font-black uppercase bg-rose-200 text-rose-900">
+            KELUAR
+          </span>
+        </div>
+
+        <form id="transaksiForm" onsubmit="handleFormSubmit(event)" class="p-6 space-y-5">
+          <!-- 1. Pemilihan Barang & Gudang -->
+          <div class="p-4 sm:p-5 rounded-2xl bg-slate-50 border border-slate-200 space-y-3">
+            <div class="flex items-center justify-between">
+              <h3 class="text-xs sm:text-sm font-bold uppercase tracking-wider text-slate-900">
+                1. Pemilihan Barang & Lokasi Gudang
+              </h3>
+              <span id="itemCountDisplay" class="text-xs text-slate-400">0 barang dimuat</span>
+            </div>
+
+            <div class="grid grid-cols-1 sm:grid-cols-2 gap-3">
+              <div>
+                <label class="block text-xs font-bold text-slate-700 uppercase mb-1">Gudang Lokasi Barang:</label>
+                <select id="inputGudang" onchange="filterItems()" class="w-full bg-white border border-slate-300 rounded-xl px-3 py-2 text-xs font-semibold text-slate-900">
+                  <option value="">-- Semua Gudang --</option>
+                </select>
+              </div>
+
+              <div>
+                <label class="block text-xs font-bold text-slate-700 uppercase mb-1">Cari Nama Barang:</label>
+                <input type="text" id="inputSearch" oninput="filterItems()" placeholder="Ketik nama barang (contoh: KABINET, MEJA, KURSI, OLYMPLAST)..." class="w-full bg-white border border-slate-300 rounded-xl px-3 py-2 text-xs font-medium">
+              </div>
+            </div>
+
+            <!-- KARTU BARANG TERPILIH (TERBACA JELAS & DETAIL) -->
+            <div id="cardBarangTerpilih" class="hidden p-4 rounded-xl bg-amber-50 border-2 border-amber-400 shadow space-y-3">
+              <div class="flex items-start justify-between gap-3">
+                <div>
+                  <div class="flex items-center gap-2 mb-1">
+                    <span id="badgeProdLine" class="px-2 py-0.5 rounded text-[10px] font-black uppercase bg-slate-900 text-white">PANEL</span>
+                    <span id="badgeGudang" class="px-2 py-0.5 rounded text-[10px] font-bold bg-amber-200 text-amber-900">GD B.JADI</span>
+                    <span class="text-[11px] font-bold text-emerald-700">✓ Barang Terpilih</span>
+                  </div>
+                  <h4 id="namaBarangTerpilih" class="text-base sm:text-lg font-black text-slate-900">Nama Barang</h4>
+                </div>
+                <button type="button" onclick="batalPilihBarang()" class="text-xs text-slate-500 hover:text-rose-600 font-semibold underline shrink-0">
+                  Ganti Pilihan
+                </button>
+              </div>
+
+              <!-- Stock Calculator -->
+              <div class="grid grid-cols-3 gap-2 text-center bg-white p-2.5 rounded-lg border border-amber-200 text-xs">
+                <div>
+                  <span class="text-[10px] text-slate-400 block font-semibold">STOK SAAT INI</span>
+                  <span id="stokSaatIniVal" class="font-bold text-slate-800 text-sm">0 Unit</span>
+                </div>
+                <div>
+                  <span id="labelMutasi" class="text-[10px] text-slate-400 block font-semibold">MUTASI KELUAR</span>
+                  <span id="valMutasi" class="font-black text-sm text-rose-600">-1 Unit</span>
+                </div>
+                <div>
+                  <span class="text-[10px] text-slate-400 block font-semibold">ESTIMASI AKHIR</span>
+                  <span id="valEstimasiAkhir" class="font-black text-sm text-slate-900">0 Unit</span>
+                </div>
+              </div>
+            </div>
+
+            <!-- LIST DAFTAR PILIHAN BARANG -->
+            <div id="listBarangWrapper" class="space-y-1">
+              <p class="text-[11px] font-semibold text-slate-500">Klik salah satu barang di bawah ini untuk memilih:</p>
+              <div id="listBarangContainer" class="max-h-52 overflow-y-auto divide-y divide-slate-100 border border-slate-200 rounded-xl bg-white custom-scrollbar text-xs">
+                <!-- Javascript will render options here -->
+              </div>
+            </div>
+          </div>
+
+          <!-- 2. Jumlah & Kondisi Fisik -->
+          <div class="p-4 sm:p-5 rounded-2xl bg-slate-50 border border-slate-200 space-y-3">
+            <h3 class="text-xs font-bold uppercase tracking-wider text-slate-900">
+              2. Kuantitas (Qty) & Detail Barang
+            </h3>
+            <div class="grid grid-cols-1 sm:grid-cols-3 gap-3">
+              <div>
+                <label class="block text-xs font-bold text-slate-700 uppercase mb-1">Jumlah (Qty) *</label>
+                <input type="number" id="inputQty" min="1" value="1" oninput="updateEstimasiStok()" required class="w-full bg-white border border-slate-300 rounded-xl px-4 py-2.5 text-base font-black text-slate-900">
+              </div>
+              <div>
+                <label class="block text-xs font-bold text-slate-700 uppercase mb-1">Satuan</label>
+                <select id="inputSatuan" class="w-full bg-white border border-slate-300 rounded-xl px-3 py-2.5 text-xs font-semibold">
+                  <option value="Unit">Unit</option>
+                  <option value="Pcs">Pcs</option>
+                  <option value="Set">Set</option>
+                  <option value="Dus / Box">Dus / Box</option>
+                </select>
+              </div>
+              <div>
+                <label class="block text-xs font-bold text-slate-700 uppercase mb-1">Kondisi Fisik</label>
+                <select id="inputKondisi" class="w-full bg-white border border-slate-300 rounded-xl px-3 py-2.5 text-xs font-semibold">
+                  <option value="Baik / Utuh">Baik / Utuh (Siap Jual)</option>
+                  <option value="Cacat Dus / Kemasan">Cacat Dus / Kemasan</option>
+                  <option value="Bad Stock / Rusak">Bad Stock / Rusak</option>
+                </select>
+              </div>
+            </div>
+          </div>
+
+          <!-- 3. Legalitas, Dokumen & Logistik -->
+          <div class="p-4 sm:p-5 rounded-2xl bg-slate-50 border border-slate-200 space-y-3">
+            <h3 class="text-xs font-bold uppercase tracking-wider text-slate-900">
+              3. Data Dokumen, Logistik & Legalitas
+            </h3>
+
+            <div class="grid grid-cols-1 sm:grid-cols-2 gap-3">
+              <div>
+                <label class="block text-xs font-bold text-slate-700 uppercase mb-1">Jenis Transaksi *</label>
+                <select id="inputJenisTransaksi" class="w-full bg-white border border-slate-300 rounded-xl px-3 py-2.5 text-xs font-semibold">
+                  <!-- JS populate -->
+                </select>
+              </div>
+              <div id="colTanggalMatrixWrap">
+                <label class="block text-xs font-bold text-slate-700 uppercase mb-1">Tanggal Kolom Laku (Matrix 26..31)</label>
+                <select id="inputTanggalLaku" class="w-full bg-white border border-slate-300 rounded-xl px-3 py-2.5 text-xs font-semibold">
+                  <optgroup label="Bulan Lalu">
+                    <option value="26">Tanggal 26</option>
+                    <option value="27">Tanggal 27</option>
+                    <option value="28">Tanggal 28</option>
+                    <option value="29">Tanggal 29</option>
+                    <option value="30">Tanggal 30</option>
+                  </optgroup>
+                  <optgroup label="Bulan Berjalan (1 - 31)" id="optGroupBulanBerjalan">
+                    <!-- 1..31 -->
+                  </optgroup>
+                </select>
+              </div>
+            </div>
+
+            <div class="grid grid-cols-1 sm:grid-cols-3 gap-3">
+              <div>
+                <label class="block text-xs font-bold text-slate-700 uppercase mb-1">No. Surat Jalan / DO / Nota</label>
+                <input type="text" id="inputNoDok" placeholder="Contoh: SJ-2026/09/01" class="w-full bg-white border border-slate-300 rounded-xl px-3 py-2 text-xs">
+              </div>
+              <div>
+                <label class="block text-xs font-bold text-slate-700 uppercase mb-1">No. PO / Ref Pesanan</label>
+                <input type="text" id="inputNoPO" placeholder="Contoh: PO-991" class="w-full bg-white border border-slate-300 rounded-xl px-3 py-2 text-xs">
+              </div>
+              <div>
+                <label class="block text-xs font-bold text-slate-700 uppercase mb-1">Tanggal Dokumen</label>
+                <input type="date" id="inputTglDok" class="w-full bg-white border border-slate-300 rounded-xl px-3 py-2 text-xs">
+              </div>
+            </div>
+
+            <div class="grid grid-cols-1 sm:grid-cols-2 gap-3">
+              <div>
+                <label id="lblPihakTerkait" class="block text-xs font-bold text-slate-700 uppercase mb-1">Nama Toko / Penerima</label>
+                <input type="text" id="inputPihak" placeholder="Nama toko atau supplier" class="w-full bg-white border border-slate-300 rounded-xl px-3 py-2 text-xs">
+              </div>
+              <div>
+                <label class="block text-xs font-bold text-slate-700 uppercase mb-1">Wilayah Distribusi</label>
+                <select id="inputWilayah" class="w-full bg-white border border-slate-300 rounded-xl px-3 py-2 text-xs font-semibold">
+                  <option value="Solo Kota">Solo Kota</option>
+                  <option value="Solo Baru / Grogol">Solo Baru / Grogol</option>
+                  <option value="Kartasura">Kartasura</option>
+                  <option value="Sukoharjo">Sukoharjo</option>
+                  <option value="Klaten">Klaten</option>
+                  <option value="Karanganyar">Karanganyar</option>
+                  <option value="Boyolali">Boyolali</option>
+                  <option value="Sragen">Sragen</option>
+                  <option value="Wonogiri">Wonogiri</option>
+                  <option value="Luar Kota / Pabrik">Luar Kota / Pabrik</option>
+                </select>
+              </div>
+            </div>
+
+            <div class="grid grid-cols-1 sm:grid-cols-2 gap-3">
+              <div>
+                <label class="block text-xs font-bold text-slate-700 uppercase mb-1">Ekspedisi / Supir & No. Truk</label>
+                <input type="text" id="inputEkspedisi" placeholder="Contoh: AD 8122 GA - Pak Joko" class="w-full bg-white border border-slate-300 rounded-xl px-3 py-2 text-xs">
+              </div>
+              <div>
+                <label class="block text-xs font-bold text-slate-700 uppercase mb-1">Petugas Checker / Admin</label>
+                <input type="text" id="inputPetugas" value="Staff Gudang GMB" class="w-full bg-white border border-slate-300 rounded-xl px-3 py-2 text-xs">
+              </div>
+            </div>
+
+            <div>
+              <label class="block text-xs font-bold text-slate-700 uppercase mb-1">Catatan / Keterangan</label>
+              <input type="text" id="inputKet" placeholder="Catatan tambahan transaksi..." class="w-full bg-white border border-slate-300 rounded-xl px-3 py-2 text-xs">
+            </div>
+          </div>
+
+          <!-- Tombol Simpan -->
+          <button type="submit" id="btnSubmitForm" class="w-full py-4 rounded-xl font-black text-white shadow-xl bg-rose-600 hover:bg-rose-700 transition flex items-center justify-center gap-2">
+            <span>Simpan Transaksi Pengeluaran Lengkap</span>
+          </button>
+        </form>
+      </div>
+    </section>
+
+    <!-- VIEW 2: LAPORAN PERSEDIAAN STOK REAL-TIME -->
+    <section id="viewLaporan" class="hidden space-y-4">
+      <div class="bg-white rounded-2xl p-4 border border-slate-200 shadow-sm flex flex-col sm:flex-row items-center justify-between gap-3">
+        <div class="flex items-center gap-2 w-full sm:w-auto">
+          <input type="text" id="searchTabelLaporan" oninput="renderTabelLaporan()" placeholder="Cari nama barang di tabel persediaan..." class="w-full sm:w-72 bg-slate-50 border border-slate-300 rounded-xl px-3 py-2 text-xs font-medium">
+          <select id="filterGudangTabel" onchange="renderTabelLaporan()" class="bg-slate-50 border border-slate-300 rounded-xl px-3 py-2 text-xs font-semibold">
+            <option value="">Semua Gudang</option>
+          </select>
+        </div>
+        <div class="text-xs text-slate-500 font-semibold" id="totalStokUnitDisplay">
+          Total Stok: 0 Unit
+        </div>
+      </div>
+
+      <div class="bg-white rounded-2xl border border-slate-200 shadow-sm overflow-hidden">
+        <div class="overflow-x-auto max-h-[70vh]">
+          <table class="w-full text-left text-xs border-collapse">
+            <thead class="bg-slate-900 text-white sticky top-0 z-10 text-[11px] uppercase">
+              <tr>
+                <th class="py-3 px-4 font-bold">No</th>
+                <th class="py-3 px-4 font-bold">Gudang</th>
+                <th class="py-3 px-4 font-bold">Line</th>
+                <th class="py-3 px-4 font-bold">Nama Barang</th>
+                <th class="py-3 px-4 font-bold text-center">Stok Awal</th>
+                <th class="py-3 px-4 font-bold text-center">Total Laku</th>
+                <th class="py-3 px-4 font-bold text-center">Stok Akhir</th>
+              </tr>
+            </thead>
+            <tbody id="tabelLaporanBody" class="divide-y divide-slate-100">
+              <!-- Render by JS -->
+            </tbody>
+          </table>
+        </div>
+      </div>
+    </section>
+
+    <!-- VIEW 3: RIWAYAT MUTASI TRANSAKSI -->
+    <section id="viewRiwayat" class="hidden space-y-4">
+      <div class="bg-white rounded-2xl p-4 border border-slate-200 shadow-sm flex items-center justify-between">
+        <h2 class="text-sm font-bold text-slate-900">Jurnal Riwayat Mutasi Transaksi</h2>
+        <span id="riwayatCountBadge" class="text-xs text-slate-400">0 Transaksi Tercatat</span>
+      </div>
+
+      <div class="bg-white rounded-2xl border border-slate-200 shadow-sm overflow-hidden">
+        <div class="overflow-x-auto">
+          <table class="w-full text-left text-xs border-collapse">
+            <thead class="bg-slate-900 text-white text-[11px] uppercase">
+              <tr>
+                <th class="py-3 px-4 font-bold">Waktu</th>
+                <th class="py-3 px-4 font-bold text-center">Tipe</th>
+                <th class="py-3 px-4 font-bold">Gudang</th>
+                <th class="py-3 px-4 font-bold">Nama Barang</th>
+                <th class="py-3 px-4 font-bold text-center">Jumlah</th>
+                <th class="py-3 px-4 font-bold">No Dokumen</th>
+                <th class="py-3 px-4 font-bold">Pihak / Wilayah</th>
+                <th class="py-3 px-4 font-bold">Petugas</th>
+              </tr>
+            </thead>
+            <tbody id="tabelRiwayatBody" class="divide-y divide-slate-100">
+              <!-- Render by JS -->
+            </tbody>
+          </table>
+        </div>
+      </div>
+    </section>
+
+  </main>
+
+  <!-- JAVASCRIPT LOGIC & EMBEDDED INVENTORY DATA -->
+  <script>
+    // Inisialisasi Data Barang Bawaan PT. Graha Multi Bintang (GMB SLO)
+    var masterGudang = [
+  "GD B.JADI DC SLO",
+  "GD BAD STOCK SEMENTARA DC SLO",
+  "GD BAD STOCK DC SLO TH 1",
+  "GD SLOW MOVING DC SLO TH 1",
+  "GD BAD STOCK DC SLO TH 2",
+  "GD SLOW MOVING DC SLO TH 2",
+  "GD B.JADI DC SLO DR PST"
+];
+    var masterItems = [
+  {
+    "depo": "GMB SLO PUSAT",
+    "gudang": "GD B.JADI DC SLO",
+    "productLine": "PANEL",
+    "namaBarang": "KABINET G STAR BLC KARIN G WHITE",
+    "stokAwal": 4,
+    "dataLaku": {
+      "26": 1
+    },
+    "stokAkhir": 3
+  },
+  {
+    "depo": "GMB SLO PUSAT",
+    "gudang": "GD B.JADI DC SLO",
+    "productLine": "PANEL",
+    "namaBarang": "KABINET G STAR BLC EMILY PINE G",
+    "stokAwal": 1,
+    "dataLaku": {},
+    "stokAkhir": 1
+  },
+  {
+    "depo": "GMB SLO PUSAT",
+    "gudang": "GD B.JADI DC SLO",
+    "productLine": "PANEL",
+    "namaBarang": "LEMARI ANAK KARAKTER G STAR LAK AVENGERS 2.0 G BLUE",
+    "stokAwal": 1,
+    "dataLaku": {},
+    "stokAkhir": 1
+  },
+  {
+    "depo": "GMB SLO PUSAT",
+    "gudang": "GD B.JADI DC SLO",
+    "productLine": "PANEL",
+    "namaBarang": "LEMARI PAKAIAN PANEL G STAR LCBP LILY S WHITE",
+    "stokAwal": 2,
+    "dataLaku": {},
+    "stokAkhir": 2
+  },
+  {
+    "depo": "GMB SLO PUSAT",
+    "gudang": "GD B.JADI DC SLO",
+    "productLine": "PANEL",
+    "namaBarang": "LEMARI PAKAIAN PANEL G STAR LCBP AUDY GREY - WHITE",
+    "stokAwal": 1,
+    "dataLaku": {},
+    "stokAkhir": 1
+  },
+  {
+    "depo": "GMB SLO PUSAT",
+    "gudang": "GD B.JADI DC SLO",
+    "productLine": "PANEL",
+    "namaBarang": "LEMARI PAKAIAN PANEL G STAR LCSP LUNA F S F.WALNUT",
+    "stokAwal": 1,
+    "dataLaku": {},
+    "stokAkhir": 1
+  },
+  {
+    "depo": "GMB SLO PUSAT",
+    "gudang": "GD B.JADI DC SLO",
+    "productLine": "PANEL",
+    "namaBarang": "LEMARI PAKAIAN PANEL G STAR LLBP KARIN G",
+    "stokAwal": 1,
+    "dataLaku": {},
+    "stokAkhir": 1
+  },
+  {
+    "depo": "GMB SLO PUSAT",
+    "gudang": "GD B.JADI DC SLO",
+    "productLine": "PANEL",
+    "namaBarang": "LEMARI PAKAIAN PANEL G STAR LLBP G DONA",
+    "stokAwal": 5,
+    "dataLaku": {},
+    "stokAkhir": 5
+  },
+  {
+    "depo": "GMB SLO PUSAT",
+    "gudang": "GD B.JADI DC SLO",
+    "productLine": "PANEL",
+    "namaBarang": "LEMARI PAKAIAN PANEL G STAR LLBP G EMILY",
+    "stokAwal": 2,
+    "dataLaku": {},
+    "stokAkhir": 2
+  },
+  {
+    "depo": "GMB SLO PUSAT",
+    "gudang": "GD B.JADI DC SLO",
+    "productLine": "PANEL",
+    "namaBarang": "MEJA BELAJAR G STAR MBB DONA",
+    "stokAwal": 2,
+    "dataLaku": {},
+    "stokAkhir": 2
+  },
+  {
+    "depo": "GMB SLO PUSAT",
+    "gudang": "GD B.JADI DC SLO",
+    "productLine": "PANEL",
+    "namaBarang": "MEJA BELAJAR G STAR MBB MORA",
+    "stokAwal": 23,
+    "dataLaku": {},
+    "stokAkhir": 23
+  },
+  {
+    "depo": "GMB SLO PUSAT",
+    "gudang": "GD B.JADI DC SLO",
+    "productLine": "PANEL",
+    "namaBarang": "MEJA BELAJAR KARAKTER G STAR MBB AVENGERS 2.0 BLUE",
+    "stokAwal": 4,
+    "dataLaku": {},
+    "stokAkhir": 4
+  },
+  {
+    "depo": "GMB SLO PUSAT",
+    "gudang": "GD B.JADI DC SLO",
+    "productLine": "PANEL",
+    "namaBarang": "MEJA BELAJAR KARAKTER G STAR MBB LITTLE PONY 2.0 PINK",
+    "stokAwal": 4,
+    "dataLaku": {},
+    "stokAkhir": 4
+  },
+  {
+    "depo": "GMB SLO PUSAT",
+    "gudang": "GD B.JADI DC SLO",
+    "productLine": "PANEL",
+    "namaBarang": "MEJA BELAJAR KARAKTER G STAR MBB MARIE THE CAT 2.0 VIOLET",
+    "stokAwal": 1,
+    "dataLaku": {},
+    "stokAkhir": 1
+  },
+  {
+    "depo": "GMB SLO PUSAT",
+    "gudang": "GD B.JADI DC SLO",
+    "productLine": "PANEL",
+    "namaBarang": "MEJA RIAS G STAR FIGHTING MR DONA KT",
+    "stokAwal": 1,
+    "dataLaku": {},
+    "stokAkhir": 1
+  },
+  {
+    "depo": "GMB SLO PUSAT",
+    "gudang": "GD B.JADI DC SLO",
+    "productLine": "PANEL",
+    "namaBarang": "MEJA RIAS G STAR FIGHTING MR DONA OV",
+    "stokAwal": 2,
+    "dataLaku": {},
+    "stokAkhir": 2
+  },
+  {
+    "depo": "GMB SLO PUSAT",
+    "gudang": "GD B.JADI DC SLO",
+    "productLine": "PANEL",
+    "namaBarang": "MEJA RIAS G STAR MR LUNA KT",
+    "stokAwal": 2,
+    "dataLaku": {},
+    "stokAkhir": 2
+  },
+  {
+    "depo": "GMB SLO PUSAT",
+    "gudang": "GD B.JADI DC SLO",
+    "productLine": "PANEL",
+    "namaBarang": "MEJA TULIS G STAR MT BROWN",
+    "stokAwal": 4,
+    "dataLaku": {},
+    "stokAkhir": 4
+  },
+  {
+    "depo": "GMB SLO PUSAT",
+    "gudang": "GD B.JADI DC SLO",
+    "productLine": "PANEL",
+    "namaBarang": "MEJA TULIS G STAR MT CHERRY",
+    "stokAwal": 4,
+    "dataLaku": {},
+    "stokAkhir": 4
+  },
+  {
+    "depo": "GMB SLO PUSAT",
+    "gudang": "GD B.JADI DC SLO",
+    "productLine": "PANEL",
+    "namaBarang": "MEJA TULIS G STAR MT DARK",
+    "stokAwal": 4,
+    "dataLaku": {},
+    "stokAkhir": 4
+  },
+  {
+    "depo": "GMB SLO PUSAT",
+    "gudang": "GD B.JADI DC SLO",
+    "productLine": "PANEL",
+    "namaBarang": "MEJA TULIS G STAR MT 80 CHERRY",
+    "stokAwal": 1,
+    "dataLaku": {},
+    "stokAkhir": 1
+  },
+  {
+    "depo": "GMB SLO PUSAT",
+    "gudang": "GD B.JADI DC SLO",
+    "productLine": "PANEL",
+    "namaBarang": "LEMARI SEPATU G STAR LSK DARK",
+    "stokAwal": 2,
+    "dataLaku": {},
+    "stokAkhir": 2
+  },
+  {
+    "depo": "GMB SLO PUSAT",
+    "gudang": "GD B.JADI DC SLO",
+    "productLine": "PANEL",
+    "namaBarang": "KITCHEN KABINET ATAS OLYMPIC GOLD KAD MUTIARA WHITE",
+    "stokAwal": 2,
+    "dataLaku": {},
+    "stokAkhir": 2
+  },
+  {
+    "depo": "GMB SLO PUSAT",
+    "gudang": "GD B.JADI DC SLO",
+    "productLine": "PANEL",
+    "namaBarang": "KITCHEN KABINET ATAS OLYMPIC GOLD KKT MUTIARA WHITE",
+    "stokAwal": 1,
+    "dataLaku": {},
+    "stokAkhir": 1
+  },
+  {
+    "depo": "GMB SLO PUSAT",
+    "gudang": "GD B.JADI DC SLO",
+    "productLine": "PANEL",
+    "namaBarang": "RAK SERBAGUNA OLYMPIC REGULAR CSD KANTO PINE",
+    "stokAwal": 2,
+    "dataLaku": {},
+    "stokAkhir": 2
+  },
+  {
+    "depo": "GMB SLO PUSAT",
+    "gudang": "GD B.JADI DC SLO",
+    "productLine": "PANEL",
+    "namaBarang": "RAK SERBAGUNA OLYMPIC REGULAR CSD KANTO WHITE",
+    "stokAwal": 2,
+    "dataLaku": {},
+    "stokAkhir": 2
+  },
+  {
+    "depo": "GMB SLO PUSAT",
+    "gudang": "GD B.JADI DC SLO",
+    "productLine": "PANEL",
+    "namaBarang": "RAK SERBAGUNA OLYMPIC REGULAR DR3 KANTO WHITE",
+    "stokAwal": 2,
+    "dataLaku": {},
+    "stokAkhir": 2
+  },
+  {
+    "depo": "GMB SLO PUSAT",
+    "gudang": "GD B.JADI DC SLO",
+    "productLine": "PANEL",
+    "namaBarang": "RAK SERBAGUNA OLYMPIC REGULAR DR4 KANTO WHITE",
+    "stokAwal": 5,
+    "dataLaku": {},
+    "stokAkhir": 5
+  },
+  {
+    "depo": "GMB SLO PUSAT",
+    "gudang": "GD B.JADI DC SLO",
+    "productLine": "PANEL",
+    "namaBarang": "LEMARI PAKAIAN PANEL OLYMPIC SILVER LP 2P SEAMUS S WHITE-PINEWOOD",
+    "stokAwal": 2,
+    "dataLaku": {},
+    "stokAkhir": 2
+  },
+  {
+    "depo": "GMB SLO PUSAT",
+    "gudang": "GD B.JADI DC SLO",
+    "productLine": "PANEL",
+    "namaBarang": "LEMARI PAKAIAN PANEL OLYMPIC SILVER LP EVRIN 2P",
+    "stokAwal": 2,
+    "dataLaku": {},
+    "stokAkhir": 2
+  },
+  {
+    "depo": "GMB SLO PUSAT",
+    "gudang": "GD B.JADI DC SLO",
+    "productLine": "PANEL",
+    "namaBarang": "LEMARI PAKAIAN PANEL OLYMPIC SILVER LP ALANA 2P",
+    "stokAwal": 3,
+    "dataLaku": {},
+    "stokAkhir": 3
+  },
+  {
+    "depo": "GMB SLO PUSAT",
+    "gudang": "GD B.JADI DC SLO",
+    "productLine": "PANEL",
+    "namaBarang": "LEMARI PAKAIAN PANEL OLYMPIC SILVER LP 3P ALPHIN S+ S.ALPHINA",
+    "stokAwal": 1,
+    "dataLaku": {},
+    "stokAkhir": 1
+  },
+  {
+    "depo": "GMB SLO PUSAT",
+    "gudang": "GD B.JADI DC SLO",
+    "productLine": "PANEL",
+    "namaBarang": "LEMARI PAKAIAN PANEL OLYMPIC SILVER LP 3P HESSIAN S+ WHITE",
+    "stokAwal": 1,
+    "dataLaku": {},
+    "stokAkhir": 1
+  },
+  {
+    "depo": "GMB SLO PUSAT",
+    "gudang": "GD B.JADI DC SLO",
+    "productLine": "PANEL",
+    "namaBarang": "LEMARI PAKAIAN PANEL OLYMPIC SILVER LP 3P NAVARO S+ CREAM",
+    "stokAwal": 1,
+    "dataLaku": {},
+    "stokAkhir": 1
+  },
+  {
+    "depo": "GMB SLO PUSAT",
+    "gudang": "GD B.JADI DC SLO",
+    "productLine": "PANEL",
+    "namaBarang": "LEMARI PAKAIAN PANEL OLYMPIC SILVER LP 3P LENO S+ N WHITE",
+    "stokAwal": 1,
+    "dataLaku": {},
+    "stokAkhir": 1
+  },
+  {
+    "depo": "GMB SLO PUSAT",
+    "gudang": "GD B.JADI DC SLO",
+    "productLine": "PANEL",
+    "namaBarang": "LEMARI PAKAIAN PANEL OLYMPIC SILVER LP ALANA 3P",
+    "stokAwal": 2,
+    "dataLaku": {},
+    "stokAkhir": 2
+  },
+  {
+    "depo": "GMB SLO PUSAT",
+    "gudang": "GD B.JADI DC SLO",
+    "productLine": "PANEL",
+    "namaBarang": "LEMARI PAKAIAN PANEL OLYMPIC SILVER LL3P ALORA",
+    "stokAwal": 4,
+    "dataLaku": {},
+    "stokAkhir": 4
+  },
+  {
+    "depo": "GMB SLO PUSAT",
+    "gudang": "GD B.JADI DC SLO",
+    "productLine": "PANEL",
+    "namaBarang": "LEMARI PAKAIAN SLIDING OLYMPIC SILVER LSD EERO WHITE GLOSS",
+    "stokAwal": 1,
+    "dataLaku": {},
+    "stokAkhir": 1
+  },
+  {
+    "depo": "GMB SLO PUSAT",
+    "gudang": "GD B.JADI DC SLO",
+    "productLine": "PANEL",
+    "namaBarang": "LEMARI PAKAIAN SLIDING OLYMPIC SILVER LSD POLO",
+    "stokAwal": 3,
+    "dataLaku": {},
+    "stokAkhir": 3
+  },
+  {
+    "depo": "GMB SLO PUSAT",
+    "gudang": "GD B.JADI DC SLO",
+    "productLine": "PANEL",
+    "namaBarang": "LEMARI PAKAIAN SLIDING OLYMPIC SILVER WSD PALAZIO WHITE",
+    "stokAwal": 1,
+    "dataLaku": {},
+    "stokAkhir": 1
+  },
+  {
+    "depo": "GMB SLO PUSAT",
+    "gudang": "GD B.JADI DC SLO",
+    "productLine": "PANEL",
+    "namaBarang": "MEJA TULIS OLYMPIC SILVER MTS ONYX CHERRY",
+    "stokAwal": 14,
+    "dataLaku": {},
+    "stokAkhir": 14
+  },
+  {
+    "depo": "GMB SLO PUSAT",
+    "gudang": "GD B.JADI DC SLO",
+    "productLine": "PANEL",
+    "namaBarang": "MEJA TULIS OLYMPIC SILVER MTS TITAN CHERRY",
+    "stokAwal": 5,
+    "dataLaku": {},
+    "stokAkhir": 5
+  },
+  {
+    "depo": "GMB SLO PUSAT",
+    "gudang": "GD B.JADI DC SLO",
+    "productLine": "PANEL",
+    "namaBarang": "RAK TV OLYMPIC SILVER AVR HELENA",
+    "stokAwal": 1,
+    "dataLaku": {},
+    "stokAkhir": 1
+  },
+  {
+    "depo": "GMB SLO PUSAT",
+    "gudang": "GD B.JADI DC SLO",
+    "productLine": "PANEL",
+    "namaBarang": "LEMARI PAKAIAN PANEL OLYMPIC COMPACT LP 2P WHITE",
+    "stokAwal": 2,
+    "dataLaku": {},
+    "stokAkhir": 2
+  },
+  {
+    "depo": "GMB SLO PUSAT",
+    "gudang": "GD B.JADI DC SLO",
+    "productLine": "PANEL",
+    "namaBarang": "LEMARI PAKAIAN PANEL OLYMPIC COMPACT LP 2P FLOWER",
+    "stokAwal": 1,
+    "dataLaku": {},
+    "stokAkhir": 1
+  },
+  {
+    "depo": "GMB SLO PUSAT",
+    "gudang": "GD B.JADI DC SLO",
+    "productLine": "PANEL",
+    "namaBarang": "LEMARI PAKAIAN PANEL OLYMPIC COMPACT LP 2P LINE",
+    "stokAwal": 1,
+    "dataLaku": {},
+    "stokAkhir": 1
+  },
+  {
+    "depo": "GMB SLO PUSAT",
+    "gudang": "GD B.JADI DC SLO",
+    "productLine": "PANEL",
+    "namaBarang": "LEMARI PAKAIAN PANEL OLYMPIC URBAN CLEAN PINEWOOD LP 3P SILVER",
+    "stokAwal": 1,
+    "dataLaku": {},
+    "stokAkhir": 1
+  },
+  {
+    "depo": "GMB SLO PUSAT",
+    "gudang": "GD B.JADI DC SLO",
+    "productLine": "PANEL",
+    "namaBarang": "LEMARI PAKAIAN PANEL OLYMPIC URBAN CLEAN PINEWOOD LP 3P WHITE",
+    "stokAwal": 1,
+    "dataLaku": {},
+    "stokAkhir": 1
+  },
+  {
+    "depo": "GMB SLO PUSAT",
+    "gudang": "GD B.JADI DC SLO",
+    "productLine": "PANEL",
+    "namaBarang": "MEJA TULIS OLYMPIC URBAN CLEAN PINEWOOD MT 120 WHITE",
+    "stokAwal": 1,
+    "dataLaku": {},
+    "stokAkhir": 1
+  },
+  {
+    "depo": "GMB SLO PUSAT",
+    "gudang": "GD B.JADI DC SLO",
+    "productLine": "PLASTIK",
+    "namaBarang": "BANGKU SQUARE CHAIR OLYMPLAST LOGO ABU-ABU (A)",
+    "stokAwal": 26,
+    "dataLaku": {},
+    "stokAkhir": 26
+  },
+  {
+    "depo": "GMB SLO PUSAT",
+    "gudang": "GD B.JADI DC SLO",
+    "productLine": "PLASTIK",
+    "namaBarang": "BANGKU SQUARE CHAIR OLYMPLAST LOGO BIRU (A)",
+    "stokAwal": 39,
+    "dataLaku": {},
+    "stokAkhir": 39
+  },
+  {
+    "depo": "GMB SLO PUSAT",
+    "gudang": "GD B.JADI DC SLO",
+    "productLine": "PLASTIK",
+    "namaBarang": "BANGKU SQUARE CHAIR OLYMPLAST LOGO COKLAT MUDA (A)",
+    "stokAwal": 8,
+    "dataLaku": {},
+    "stokAkhir": 8
+  },
+  {
+    "depo": "GMB SLO PUSAT",
+    "gudang": "GD B.JADI DC SLO",
+    "productLine": "PLASTIK",
+    "namaBarang": "BANGKU SQUARE CHAIR OLYMPLAST LOGO COKLAT TUA (A)",
+    "stokAwal": 1,
+    "dataLaku": {},
+    "stokAkhir": 1
+  },
+  {
+    "depo": "GMB SLO PUSAT",
+    "gudang": "GD B.JADI DC SLO",
+    "productLine": "PLASTIK",
+    "namaBarang": "BANGKU SQUARE CHAIR OLYMPLAST LOGO HIJAU (A)",
+    "stokAwal": 1,
+    "dataLaku": {},
+    "stokAkhir": 1
+  },
+  {
+    "depo": "GMB SLO PUSAT",
+    "gudang": "GD B.JADI DC SLO",
+    "productLine": "PLASTIK",
+    "namaBarang": "BANGKU SQUARE CHAIR OLYMPLAST LOGO KUNING (A)",
+    "stokAwal": 24,
+    "dataLaku": {},
+    "stokAkhir": 24
+  },
+  {
+    "depo": "GMB SLO PUSAT",
+    "gudang": "GD B.JADI DC SLO",
+    "productLine": "PLASTIK",
+    "namaBarang": "BANGKU SQUARE CHAIR OLYMPLAST LOGO MERAH (A)",
+    "stokAwal": 4,
+    "dataLaku": {},
+    "stokAkhir": 4
+  },
+  {
+    "depo": "GMB SLO PUSAT",
+    "gudang": "GD B.JADI DC SLO",
+    "productLine": "PLASTIK",
+    "namaBarang": "BANGKU SQUARE CHAIR OLYMPLAST LOGO ORANGE (A)",
+    "stokAwal": 43,
+    "dataLaku": {},
+    "stokAkhir": 43
+  },
+  {
+    "depo": "GMB SLO PUSAT",
+    "gudang": "GD B.JADI DC SLO",
+    "productLine": "PLASTIK",
+    "namaBarang": "BANGKU SQUARE CHAIR OLYMPLAST LOGO PUTIH (A)",
+    "stokAwal": 3,
+    "dataLaku": {},
+    "stokAkhir": 3
+  },
+  {
+    "depo": "GMB SLO PUSAT",
+    "gudang": "GD B.JADI DC SLO",
+    "productLine": "PLASTIK",
+    "namaBarang": "BANGKU CRYSTAL STOOL OLYMPLAST MERAH",
+    "stokAwal": 3,
+    "dataLaku": {},
+    "stokAkhir": 3
+  },
+  {
+    "depo": "GMB SLO PUSAT",
+    "gudang": "GD B.JADI DC SLO",
+    "productLine": "PLASTIK",
+    "namaBarang": "BANGKU CRYSTAL STOOL OLYMPLAST KUNING",
+    "stokAwal": 3,
+    "dataLaku": {},
+    "stokAkhir": 3
+  },
+  {
+    "depo": "GMB SLO PUSAT",
+    "gudang": "GD B.JADI DC SLO",
+    "productLine": "PLASTIK",
+    "namaBarang": "BANGKU RATTAN ROUND CHAIR OLYMPLAST ABU-ABU (A)",
+    "stokAwal": 9,
+    "dataLaku": {},
+    "stokAkhir": 9
+  },
+  {
+    "depo": "GMB SLO PUSAT",
+    "gudang": "GD B.JADI DC SLO",
+    "productLine": "PLASTIK",
+    "namaBarang": "BANGKU RATTAN ROUND CHAIR OLYMPLAST BIRU (A)",
+    "stokAwal": 12,
+    "dataLaku": {},
+    "stokAkhir": 12
+  },
+  {
+    "depo": "GMB SLO PUSAT",
+    "gudang": "GD B.JADI DC SLO",
+    "productLine": "PLASTIK",
+    "namaBarang": "BANGKU RATTAN ROUND CHAIR OLYMPLAST COKLAT MUDA (A)",
+    "stokAwal": 105,
+    "dataLaku": {},
+    "stokAkhir": 105
+  },
+  {
+    "depo": "GMB SLO PUSAT",
+    "gudang": "GD B.JADI DC SLO",
+    "productLine": "PLASTIK",
+    "namaBarang": "BANGKU RATTAN ROUND CHAIR - W OLYMPLAST CREAM COKLAT MUDA (A)",
+    "stokAwal": 4,
+    "dataLaku": {},
+    "stokAkhir": 4
+  },
+  {
+    "depo": "GMB SLO PUSAT",
+    "gudang": "GD B.JADI DC SLO",
+    "productLine": "PLASTIK",
+    "namaBarang": "BANGKU RATTAN ROUND CHAIR - W OLYMPLAST CREAM COKLAT TUA (A)",
+    "stokAwal": 32,
+    "dataLaku": {},
+    "stokAkhir": 32
+  },
+  {
+    "depo": "GMB SLO PUSAT",
+    "gudang": "GD B.JADI DC SLO",
+    "productLine": "PLASTIK",
+    "namaBarang": "BANGKU KNITTING STOOL OLYMPLAST BEIGE (A)",
+    "stokAwal": 31,
+    "dataLaku": {},
+    "stokAkhir": 31
+  },
+  {
+    "depo": "GMB SLO PUSAT",
+    "gudang": "GD B.JADI DC SLO",
+    "productLine": "PLASTIK",
+    "namaBarang": "BANGKU KNITTING STOOL OLYMPLAST BIRU (A)",
+    "stokAwal": 10,
+    "dataLaku": {},
+    "stokAkhir": 10
+  },
+  {
+    "depo": "GMB SLO PUSAT",
+    "gudang": "GD B.JADI DC SLO",
+    "productLine": "PLASTIK",
+    "namaBarang": "BANGKU KNITTING STOOL OLYMPLAST HIJAU (A)",
+    "stokAwal": 18,
+    "dataLaku": {},
+    "stokAkhir": 18
+  },
+  {
+    "depo": "GMB SLO PUSAT",
+    "gudang": "GD B.JADI DC SLO",
+    "productLine": "PLASTIK",
+    "namaBarang": "BANGKU KNITTING STOOL OLYMPLAST MERAH (A)",
+    "stokAwal": 21,
+    "dataLaku": {},
+    "stokAkhir": 21
+  },
+  {
+    "depo": "GMB SLO PUSAT",
+    "gudang": "GD B.JADI DC SLO",
+    "productLine": "PLASTIK",
+    "namaBarang": "BANGKU IRON STOOL OLYMPLAST PUTIH",
+    "stokAwal": 9,
+    "dataLaku": {},
+    "stokAkhir": 9
+  },
+  {
+    "depo": "GMB SLO PUSAT",
+    "gudang": "GD B.JADI DC SLO",
+    "productLine": "PLASTIK",
+    "namaBarang": "MEJA SUDUT OLYMPLAST OCT 08 BIRU",
+    "stokAwal": 1,
+    "dataLaku": {},
+    "stokAkhir": 1
+  },
+  {
+    "depo": "GMB SLO PUSAT",
+    "gudang": "GD B.JADI DC SLO",
+    "productLine": "PLASTIK",
+    "namaBarang": "MEJA SUDUT OLYMPLAST OCT 08 KUNING",
+    "stokAwal": 2,
+    "dataLaku": {},
+    "stokAkhir": 2
+  },
+  {
+    "depo": "GMB SLO PUSAT",
+    "gudang": "GD B.JADI DC SLO",
+    "productLine": "PLASTIK",
+    "namaBarang": "MEJA SUDUT OLYMPLAST OCT R ROTAN PLASTIK COKLAT MUDA",
+    "stokAwal": 6,
+    "dataLaku": {},
+    "stokAkhir": 6
+  },
+  {
+    "depo": "GMB SLO PUSAT",
+    "gudang": "GD B.JADI DC SLO",
+    "productLine": "PLASTIK",
+    "namaBarang": "MEJA SUDUT OLYMPLAST OCT R ROTAN PLASTIK COKLAT TUA",
+    "stokAwal": 8,
+    "dataLaku": {},
+    "stokAkhir": 8
+  },
+  {
+    "depo": "GMB SLO PUSAT",
+    "gudang": "GD B.JADI DC SLO",
+    "productLine": "PLASTIK",
+    "namaBarang": "COFFEE TABLE OLYMPLAST OCT W PLASTIK COKLAT MUDA",
+    "stokAwal": 14,
+    "dataLaku": {},
+    "stokAkhir": 14
+  },
+  {
+    "depo": "GMB SLO PUSAT",
+    "gudang": "GD B.JADI DC SLO",
+    "productLine": "PLASTIK",
+    "namaBarang": "COFFEE TABLE OLYMPLAST OCT W PLASTIK COKLAT TUA",
+    "stokAwal": 15,
+    "dataLaku": {},
+    "stokAkhir": 15
+  },
+  {
+    "depo": "GMB SLO PUSAT",
+    "gudang": "GD B.JADI DC SLO",
+    "productLine": "PLASTIK",
+    "namaBarang": "MEJA SUDUT OLYMPLAST OST R ROTAN PLASTIK COKLAT MUDA",
+    "stokAwal": 4,
+    "dataLaku": {},
+    "stokAkhir": 4
+  },
+  {
+    "depo": "GMB SLO PUSAT",
+    "gudang": "GD B.JADI DC SLO",
+    "productLine": "PLASTIK",
+    "namaBarang": "MEJA SUDUT OLYMPLAST OST R ROTAN PLASTIK COKLAT TUA",
+    "stokAwal": 13,
+    "dataLaku": {},
+    "stokAkhir": 13
+  },
+  {
+    "depo": "GMB SLO PUSAT",
+    "gudang": "GD B.JADI DC SLO",
+    "productLine": "PLASTIK",
+    "namaBarang": "KERANJANG PAKAIAN OLYMPLAST OLB COKLAT",
+    "stokAwal": 21,
+    "dataLaku": {},
+    "stokAkhir": 21
+  },
+  {
+    "depo": "GMB SLO PUSAT",
+    "gudang": "GD B.JADI DC SLO",
+    "productLine": "PLASTIK",
+    "namaBarang": "KERANJANG PAKAIAN OLYMPLAST OLB CREAM",
+    "stokAwal": 10,
+    "dataLaku": {},
+    "stokAkhir": 10
+  },
+  {
+    "depo": "GMB SLO PUSAT",
+    "gudang": "GD B.JADI DC SLO",
+    "productLine": "PLASTIK",
+    "namaBarang": "RAK PIRING OLYMPLAST RSO K 03 PUTIH TULANG",
+    "stokAwal": 3,
+    "dataLaku": {},
+    "stokAkhir": 3
+  },
+  {
+    "depo": "GMB SLO PUSAT",
+    "gudang": "GD B.JADI DC SLO",
+    "productLine": "PLASTIK",
+    "namaBarang": "TROLLY PENYIMPANAN OLYMPLAST OFT 03 ABU-ABU",
+    "stokAwal": 7,
+    "dataLaku": {},
+    "stokAkhir": 7
+  },
+  {
+    "depo": "GMB SLO PUSAT",
+    "gudang": "GD B.JADI DC SLO",
+    "productLine": "PLASTIK",
+    "namaBarang": "TROLLY PENYIMPANAN OLYMPLAST OFT 03 CREAM",
+    "stokAwal": 10,
+    "dataLaku": {},
+    "stokAkhir": 10
+  },
+  {
+    "depo": "GMB SLO PUSAT",
+    "gudang": "GD B.JADI DC SLO",
+    "productLine": "PLASTIK",
+    "namaBarang": "TEMPAT PENYIMPANAN OLYMPLAST OKS ABU-ABU",
+    "stokAwal": 2,
+    "dataLaku": {},
+    "stokAkhir": 2
+  },
+  {
+    "depo": "GMB SLO PUSAT",
+    "gudang": "GD B.JADI DC SLO",
+    "productLine": "PLASTIK",
+    "namaBarang": "KERANJANG LIPAT OLYMPLAST OFB CREAM",
+    "stokAwal": 23,
+    "dataLaku": {},
+    "stokAkhir": 23
+  },
+  {
+    "depo": "GMB SLO PUSAT",
+    "gudang": "GD B.JADI DC SLO",
+    "productLine": "PLASTIK",
+    "namaBarang": "KABINET OLYMPLAST OKL A1 CREAM",
+    "stokAwal": 1,
+    "dataLaku": {},
+    "stokAkhir": 1
+  },
+  {
+    "depo": "GMB SLO PUSAT",
+    "gudang": "GD B.JADI DC SLO",
+    "productLine": "PLASTIK",
+    "namaBarang": "KABINET OLYMPLAST OKL JUMBO COKLAT",
+    "stokAwal": 12,
+    "dataLaku": {},
+    "stokAkhir": 12
+  },
+  {
+    "depo": "GMB SLO PUSAT",
+    "gudang": "GD B.JADI DC SLO",
+    "productLine": "PLASTIK",
+    "namaBarang": "KURSI OLYMPLAST OL 101 B BIRU",
+    "stokAwal": 263,
+    "dataLaku": {},
+    "stokAkhir": 263
+  },
+  {
+    "depo": "GMB SLO PUSAT",
+    "gudang": "GD B.JADI DC SLO",
+    "productLine": "PLASTIK",
+    "namaBarang": "KURSI OLYMPLAST OL 101 B HIJAU",
+    "stokAwal": 31,
+    "dataLaku": {},
+    "stokAkhir": 31
+  },
+  {
+    "depo": "GMB SLO PUSAT",
+    "gudang": "GD B.JADI DC SLO",
+    "productLine": "PLASTIK",
+    "namaBarang": "KURSI OLYMPLAST OL 101 B MERAH",
+    "stokAwal": 320,
+    "dataLaku": {},
+    "stokAkhir": 320
+  },
+  {
+    "depo": "GMB SLO PUSAT",
+    "gudang": "GD B.JADI DC SLO",
+    "productLine": "PLASTIK",
+    "namaBarang": "KURSI OLYMPLAST OL 203 N BIRU",
+    "stokAwal": 421,
+    "dataLaku": {},
+    "stokAkhir": 421
+  },
+  {
+    "depo": "GMB SLO PUSAT",
+    "gudang": "GD B.JADI DC SLO",
+    "productLine": "PLASTIK",
+    "namaBarang": "KURSI OLYMPLAST OL 203 N HIJAU",
+    "stokAwal": 297,
+    "dataLaku": {},
+    "stokAkhir": 297
+  },
+  {
+    "depo": "GMB SLO PUSAT",
+    "gudang": "GD B.JADI DC SLO",
+    "productLine": "PLASTIK",
+    "namaBarang": "KURSI OLYMPLAST OL 203 N MERAH",
+    "stokAwal": 265,
+    "dataLaku": {},
+    "stokAkhir": 265
+  },
+  {
+    "depo": "GMB SLO PUSAT",
+    "gudang": "GD B.JADI DC SLO",
+    "productLine": "PLASTIK",
+    "namaBarang": "KURSI OLYMPLAST OL 203 R COKLAT MUDA",
+    "stokAwal": 255,
+    "dataLaku": {},
+    "stokAkhir": 255
+  },
+  {
+    "depo": "GMB SLO PUSAT",
+    "gudang": "GD B.JADI DC SLO",
+    "productLine": "PLASTIK",
+    "namaBarang": "KURSI OLYMPLAST OL 203 R COKLAT TUA",
+    "stokAwal": 325,
+    "dataLaku": {},
+    "stokAkhir": 325
+  },
+  {
+    "depo": "GMB SLO PUSAT",
+    "gudang": "GD B.JADI DC SLO",
+    "productLine": "OFFICE",
+    "namaBarang": "KURSI LIPAT FRONTLINE KLF CELIO HITAM",
+    "stokAwal": 4,
+    "dataLaku": {},
+    "stokAkhir": 4
+  },
+  {
+    "depo": "GMB SLO PUSAT",
+    "gudang": "GD B.JADI DC SLO",
+    "productLine": "OFFICE",
+    "namaBarang": "KURSI SUSUN FRONTLINE KSPB FL 103 KROM BIRU",
+    "stokAwal": 1,
+    "dataLaku": {},
+    "stokAkhir": 1
+  },
+  {
+    "depo": "GMB SLO PUSAT",
+    "gudang": "GD B.JADI DC SLO",
+    "productLine": "OFFICE",
+    "namaBarang": "KURSI SUSUN FRONTLINE KSPB FL 103 KROM HITAM",
+    "stokAwal": 24,
+    "dataLaku": {},
+    "stokAkhir": 24
+  },
+  {
+    "depo": "GMB SLO PUSAT",
+    "gudang": "GD B.JADI DC SLO",
+    "productLine": "OFFICE",
+    "namaBarang": "KURSI SUSUN FRONTLINE KSPB FL 103 KROM MERAH",
+    "stokAwal": 41,
+    "dataLaku": {},
+    "stokAkhir": 41
+  },
+  {
+    "depo": "GMB SLO PUSAT",
+    "gudang": "GD B.JADI DC SLO",
+    "productLine": "OFFICE",
+    "namaBarang": "KURSI STAFF MORATA KS LOGAN HITAM",
+    "stokAwal": 1,
+    "dataLaku": {},
+    "stokAkhir": 1
+  },
+  {
+    "depo": "GMB SLO PUSAT",
+    "gudang": "GD B.JADI DC SLO",
+    "productLine": "OFFICE",
+    "namaBarang": "KURSI STAFF MORATA KS AXEL HITAM",
+    "stokAwal": 3,
+    "dataLaku": {},
+    "stokAkhir": 3
+  },
+  {
+    "depo": "GMB SLO PUSAT",
+    "gudang": "GD B.JADI DC SLO",
+    "productLine": "UMUM",
+    "namaBarang": "MEJA MAKAN SET 4 KURSI OLYMPIC DTM SIMPSON SONOMA OAK BROWN",
+    "stokAwal": 12,
+    "dataLaku": {},
+    "stokAkhir": 12
+  },
+  {
+    "depo": "GMB SLO PUSAT",
+    "gudang": "GD B.JADI DC SLO",
+    "productLine": "UMUM",
+    "namaBarang": "MEJA MAKAN SET 4 KURSI OLYMPIC DTM SIMPSON SONOMA OAK CREAM",
+    "stokAwal": 8,
+    "dataLaku": {},
+    "stokAkhir": 8
+  },
+  {
+    "depo": "GMB SLO PUSAT",
+    "gudang": "GD B.JADI DC SLO",
+    "productLine": "UMUM",
+    "namaBarang": "MEJA MAKAN SET 6 KURSI OLYMPIC DTM SIMPSON SONOMA OAK BROWN",
+    "stokAwal": 3,
+    "dataLaku": {},
+    "stokAkhir": 3
+  },
+  {
+    "depo": "GMB SLO PUSAT",
+    "gudang": "GD B.JADI DC SLO",
+    "productLine": "UMUM",
+    "namaBarang": "MEJA MAKAN SET 6 KURSI OLYMPIC DTM SIMPSON SONOMA OAK CREAM",
+    "stokAwal": 2,
+    "dataLaku": {},
+    "stokAkhir": 2
+  },
+  {
+    "depo": "GMB SLO PUSAT",
+    "gudang": "GD B.JADI DC SLO",
+    "productLine": "UMUM",
+    "namaBarang": "MEJA SERBAGUNA OLYMPIC MT KIDS 120 MERAH",
+    "stokAwal": 2,
+    "dataLaku": {},
+    "stokAkhir": 2
+  },
+  {
+    "depo": "GMB SLO PUSAT",
+    "gudang": "GD B.JADI DC SLO",
+    "productLine": "UMUM",
+    "namaBarang": "MEJA MAKAN SET OLYMPIC SILVER MK OAKLINE B 4S HITAM HOYO",
+    "stokAwal": 1,
+    "dataLaku": {},
+    "stokAkhir": 1
+  },
+  {
+    "depo": "GMB SLO PUSAT",
+    "gudang": "GD B.JADI DC SLO",
+    "productLine": "UMUM",
+    "namaBarang": "MEJA CAFE SET OLYMPIC SILVER MC ARDEN 4S PUTIH HOYO",
+    "stokAwal": 1,
+    "dataLaku": {},
+    "stokAkhir": 1
+  },
+  {
+    "depo": "GMB SLO PUSAT",
+    "gudang": "GD BAD STOCK SEMENTARA DC SLO",
+    "productLine": "PANEL",
+    "namaBarang": "LEMARI PAKAIAN PANEL G STAR LCSP KARIN S WHITE",
+    "stokAwal": 1,
+    "dataLaku": {},
+    "stokAkhir": 1
+  },
+  {
+    "depo": "GMB SLO PUSAT",
+    "gudang": "GD BAD STOCK SEMENTARA DC SLO",
+    "productLine": "PANEL",
+    "namaBarang": "LEMARI PAKAIAN PANEL OLYMPIC SILVER LP 2P ALPHIN S S.ALPHINA",
+    "stokAwal": 1,
+    "dataLaku": {},
+    "stokAkhir": 1
+  },
+  {
+    "depo": "GMB SLO PUSAT",
+    "gudang": "GD BAD STOCK SEMENTARA DC SLO",
+    "productLine": "PANEL",
+    "namaBarang": "LEMARI PAKAIAN PANEL OLYMPIC SILVER LP 2P NAVARO S CREAM",
+    "stokAwal": 1,
+    "dataLaku": {},
+    "stokAkhir": 1
+  },
+  {
+    "depo": "GMB SLO PUSAT",
+    "gudang": "GD BAD STOCK SEMENTARA DC SLO",
+    "productLine": "PLASTIK",
+    "namaBarang": "BANGKU SQUARE CHAIR OLYMPLAST LOGO ABU-ABU (A)",
+    "stokAwal": 3,
+    "dataLaku": {},
+    "stokAkhir": 3
+  },
+  {
+    "depo": "GMB SLO PUSAT",
+    "gudang": "GD BAD STOCK SEMENTARA DC SLO",
+    "productLine": "PLASTIK",
+    "namaBarang": "BANGKU SQUARE CHAIR OLYMPLAST LOGO BIRU (A)",
+    "stokAwal": 8,
+    "dataLaku": {},
+    "stokAkhir": 8
+  },
+  {
+    "depo": "GMB SLO PUSAT",
+    "gudang": "GD BAD STOCK SEMENTARA DC SLO",
+    "productLine": "PLASTIK",
+    "namaBarang": "BANGKU SQUARE CHAIR OLYMPLAST LOGO COKLAT MUDA (A)",
+    "stokAwal": 13,
+    "dataLaku": {},
+    "stokAkhir": 13
+  },
+  {
+    "depo": "GMB SLO PUSAT",
+    "gudang": "GD BAD STOCK SEMENTARA DC SLO",
+    "productLine": "PLASTIK",
+    "namaBarang": "BANGKU SQUARE CHAIR OLYMPLAST LOGO COKLAT TUA (A)",
+    "stokAwal": 2,
+    "dataLaku": {},
+    "stokAkhir": 2
+  },
+  {
+    "depo": "GMB SLO PUSAT",
+    "gudang": "GD BAD STOCK SEMENTARA DC SLO",
+    "productLine": "PLASTIK",
+    "namaBarang": "BANGKU SQUARE CHAIR OLYMPLAST LOGO HIJAU (A)",
+    "stokAwal": 9,
+    "dataLaku": {},
+    "stokAkhir": 9
+  },
+  {
+    "depo": "GMB SLO PUSAT",
+    "gudang": "GD BAD STOCK SEMENTARA DC SLO",
+    "productLine": "PLASTIK",
+    "namaBarang": "BANGKU SQUARE CHAIR OLYMPLAST LOGO KUNING (A)",
+    "stokAwal": 6,
+    "dataLaku": {},
+    "stokAkhir": 6
+  },
+  {
+    "depo": "GMB SLO PUSAT",
+    "gudang": "GD BAD STOCK SEMENTARA DC SLO",
+    "productLine": "PLASTIK",
+    "namaBarang": "BANGKU SQUARE CHAIR OLYMPLAST LOGO MERAH (A)",
+    "stokAwal": 7,
+    "dataLaku": {},
+    "stokAkhir": 7
+  },
+  {
+    "depo": "GMB SLO PUSAT",
+    "gudang": "GD BAD STOCK SEMENTARA DC SLO",
+    "productLine": "PLASTIK",
+    "namaBarang": "BANGKU SQUARE CHAIR OLYMPLAST LOGO ORANGE (A)",
+    "stokAwal": 11,
+    "dataLaku": {},
+    "stokAkhir": 11
+  },
+  {
+    "depo": "GMB SLO PUSAT",
+    "gudang": "GD BAD STOCK SEMENTARA DC SLO",
+    "productLine": "PLASTIK",
+    "namaBarang": "BANGKU SQUARE CHAIR OLYMPLAST LOGO PUTIH (A)",
+    "stokAwal": 1,
+    "dataLaku": {},
+    "stokAkhir": 1
+  },
+  {
+    "depo": "GMB SLO PUSAT",
+    "gudang": "GD BAD STOCK SEMENTARA DC SLO",
+    "productLine": "PLASTIK",
+    "namaBarang": "KURSI OLYMPLAST OL 101 A BIRU",
+    "stokAwal": 10,
+    "dataLaku": {},
+    "stokAkhir": 10
+  },
+  {
+    "depo": "GMB SLO PUSAT",
+    "gudang": "GD BAD STOCK SEMENTARA DC SLO",
+    "productLine": "PLASTIK",
+    "namaBarang": "KURSI OLYMPLAST OL 101 A HIJAU",
+    "stokAwal": 14,
+    "dataLaku": {},
+    "stokAkhir": 14
+  },
+  {
+    "depo": "GMB SLO PUSAT",
+    "gudang": "GD BAD STOCK SEMENTARA DC SLO",
+    "productLine": "PLASTIK",
+    "namaBarang": "KURSI OLYMPLAST OL 101 A MERAH",
+    "stokAwal": 10,
+    "dataLaku": {},
+    "stokAkhir": 10
+  },
+  {
+    "depo": "GMB SLO PUSAT",
+    "gudang": "GD BAD STOCK SEMENTARA DC SLO",
+    "productLine": "UMUM",
+    "namaBarang": "LEMARI PAKAIAN BESI OLYMSTEEL OSW 4P TG CERMIN ARLO PUTIH",
+    "stokAwal": 1,
+    "dataLaku": {},
+    "stokAkhir": 1
+  },
+  {
+    "depo": "GMB SLO PUSAT",
+    "gudang": "GD BAD STOCK SEMENTARA DC SLO",
+    "productLine": "UMUM",
+    "namaBarang": "LEMARI PAKAIAN BESI OLYMSTEEL OSWS ARABEL 90 PUTIH",
+    "stokAwal": 1,
+    "dataLaku": {},
+    "stokAkhir": 1
+  },
+  {
+    "depo": "GMB SLO PUSAT",
+    "gudang": "GD BAD STOCK DC SLO TH 1",
+    "productLine": "PANEL",
+    "namaBarang": "LEMARI PAKAIAN PANEL G STAR LCBP MONITA WHITE WOOD - WHITE",
+    "stokAwal": 1,
+    "dataLaku": {},
+    "stokAkhir": 1
+  },
+  {
+    "depo": "GMB SLO PUSAT",
+    "gudang": "GD BAD STOCK DC SLO TH 1",
+    "productLine": "PANEL",
+    "namaBarang": "LEMARI PAKAIAN PANEL G STAR LCBP DONA",
+    "stokAwal": 1,
+    "dataLaku": {},
+    "stokAkhir": 1
+  },
+  {
+    "depo": "GMB SLO PUSAT",
+    "gudang": "GD BAD STOCK DC SLO TH 1",
+    "productLine": "PANEL",
+    "namaBarang": "LEMARI PAKAIAN PANEL G STAR LL4P DONA",
+    "stokAwal": 1,
+    "dataLaku": {},
+    "stokAkhir": 1
+  },
+  {
+    "depo": "GMB SLO PUSAT",
+    "gudang": "GD BAD STOCK DC SLO TH 1",
+    "productLine": "PANEL",
+    "namaBarang": "LEMARI PAKAIAN PANEL G STAR LL4P EMILY PINE",
+    "stokAwal": 1,
+    "dataLaku": {},
+    "stokAkhir": 1
+  },
+  {
+    "depo": "GMB SLO PUSAT",
+    "gudang": "GD BAD STOCK DC SLO TH 1",
+    "productLine": "PANEL",
+    "namaBarang": "MEJA BELAJAR KARAKTER G STAR MBB BIG HERO SIX 2.0 RED",
+    "stokAwal": 2,
+    "dataLaku": {},
+    "stokAkhir": 2
+  },
+  {
+    "depo": "GMB SLO PUSAT",
+    "gudang": "GD BAD STOCK DC SLO TH 1",
+    "productLine": "PANEL",
+    "namaBarang": "LEMARI PAJANGAN OLYMPIC GOLD DCH EMERALD 2K PEARL OAK",
+    "stokAwal": 2,
+    "dataLaku": {},
+    "stokAkhir": 2
+  },
+  {
+    "depo": "GMB SLO PUSAT",
+    "gudang": "GD BAD STOCK DC SLO TH 1",
+    "productLine": "PANEL",
+    "namaBarang": "LEMARI PAKAIAN PANEL OLYMPIC SILVER LP 2P NAVARO S CREAM",
+    "stokAwal": 2,
+    "dataLaku": {},
+    "stokAkhir": 2
+  },
+  {
+    "depo": "GMB SLO PUSAT",
+    "gudang": "GD BAD STOCK DC SLO TH 1",
+    "productLine": "PLASTIK",
+    "namaBarang": "BANGKU SQUARE CHAIR OLYMPLAST LOGO PINK (A)",
+    "stokAwal": 5,
+    "dataLaku": {},
+    "stokAkhir": 5
+  },
+  {
+    "depo": "GMB SLO PUSAT",
+    "gudang": "GD BAD STOCK DC SLO TH 1",
+    "productLine": "PLASTIK",
+    "namaBarang": "KURSI OLYMPLAST MILENIAL BIRU",
+    "stokAwal": 3,
+    "dataLaku": {},
+    "stokAkhir": 3
+  },
+  {
+    "depo": "GMB SLO PUSAT",
+    "gudang": "GD BAD STOCK DC SLO TH 1",
+    "productLine": "OFFICE",
+    "namaBarang": "KURSI STAFF FRONTLINE KSA 6 BIRU",
+    "stokAwal": 2,
+    "dataLaku": {},
+    "stokAkhir": 2
+  },
+  {
+    "depo": "GMB SLO PUSAT",
+    "gudang": "GD BAD STOCK DC SLO TH 1",
+    "productLine": "OFFICE",
+    "namaBarang": "LEMARI ARSIP BESI FRONTLINE FC A 18 ABU-ABU TUA & MUDA",
+    "stokAwal": 1,
+    "dataLaku": {},
+    "stokAkhir": 1
+  },
+  {
+    "depo": "GMB SLO PUSAT",
+    "gudang": "GD SLOW MOVING DC SLO TH 1",
+    "productLine": "PANEL",
+    "namaBarang": "LEMARI ANAK KARAKTER G STAR LAK BIG HERO SIX 2.0 G RED",
+    "stokAwal": 1,
+    "dataLaku": {},
+    "stokAkhir": 1
+  },
+  {
+    "depo": "GMB SLO PUSAT",
+    "gudang": "GD SLOW MOVING DC SLO TH 1",
+    "productLine": "PANEL",
+    "namaBarang": "LEMARI PAKAIAN PANEL G STAR LCBP BELLA H S+ DARK",
+    "stokAwal": 1,
+    "dataLaku": {},
+    "stokAkhir": 1
+  },
+  {
+    "depo": "GMB SLO PUSAT",
+    "gudang": "GD SLOW MOVING DC SLO TH 1",
+    "productLine": "PLASTIK",
+    "namaBarang": "MEJA ANAK OLYMPLAST OKT TSUM TSUM BIRU",
+    "stokAwal": 2,
+    "dataLaku": {},
+    "stokAkhir": 2
+  },
+  {
+    "depo": "GMB SLO PUSAT",
+    "gudang": "GD SLOW MOVING DC SLO TH 1",
+    "productLine": "UMUM",
+    "namaBarang": "MEJA TAMU OLYMPIC CT MARBLE 02",
+    "stokAwal": 8,
+    "dataLaku": {},
+    "stokAkhir": 8
+  },
+  {
+    "depo": "GMB SLO PUSAT",
+    "gudang": "GD SLOW MOVING DC SLO TH 1",
+    "productLine": "UMUM",
+    "namaBarang": "MEJA TAMU OLYMPIC CT BOSYE PUTIH",
+    "stokAwal": 4,
+    "dataLaku": {
+      "26": 1
+    },
+    "stokAkhir": 3
+  },
+  {
+    "depo": "GMB SLO PUSAT",
+    "gudang": "GD SLOW MOVING DC SLO TH 1",
+    "productLine": "UMUM",
+    "namaBarang": "RAK SERBAGUNA BESI OLYMPIC RS SIMPSONS SONOMA OAK CREAM",
+    "stokAwal": 15,
+    "dataLaku": {},
+    "stokAkhir": 15
+  },
+  {
+    "depo": "GMB SLO PUSAT",
+    "gudang": "GD BAD STOCK DC SLO TH 2",
+    "productLine": "PANEL",
+    "namaBarang": "KABINET G STAR BLC VHIA WG DARK",
+    "stokAwal": 1,
+    "dataLaku": {},
+    "stokAkhir": 1
+  },
+  {
+    "depo": "GMB SLO PUSAT",
+    "gudang": "GD BAD STOCK DC SLO TH 2",
+    "productLine": "PANEL",
+    "namaBarang": "LEMARI PAKAIAN PANEL G STAR LCBP ROSI H BROWN",
+    "stokAwal": 2,
+    "dataLaku": {},
+    "stokAkhir": 2
+  },
+  {
+    "depo": "GMB SLO PUSAT",
+    "gudang": "GD BAD STOCK DC SLO TH 2",
+    "productLine": "PANEL",
+    "namaBarang": "LEMARI PAKAIAN PANEL G STAR LCBP VHIA S+ WHITE",
+    "stokAwal": 2,
+    "dataLaku": {},
+    "stokAkhir": 2
+  },
+  {
+    "depo": "GMB SLO PUSAT",
+    "gudang": "GD BAD STOCK DC SLO TH 2",
+    "productLine": "PANEL",
+    "namaBarang": "LEMARI PAKAIAN PANEL OLYMPIC SILVER LP 2P CALGARY STA 820751",
+    "stokAwal": 5,
+    "dataLaku": {},
+    "stokAkhir": 5
+  },
+  {
+    "depo": "GMB SLO PUSAT",
+    "gudang": "GD BAD STOCK DC SLO TH 2",
+    "productLine": "PLASTIK",
+    "namaBarang": "KURSI OLYMPLAST OL 203 N BIRU",
+    "stokAwal": 27,
+    "dataLaku": {},
+    "stokAkhir": 27
+  },
+  {
+    "depo": "GMB SLO PUSAT",
+    "gudang": "GD BAD STOCK DC SLO TH 2",
+    "productLine": "PLASTIK",
+    "namaBarang": "KURSI OLYMPLAST OL 203 N HIJAU",
+    "stokAwal": 26,
+    "dataLaku": {},
+    "stokAkhir": 26
+  },
+  {
+    "depo": "GMB SLO PUSAT",
+    "gudang": "GD BAD STOCK DC SLO TH 2",
+    "productLine": "OFFICE",
+    "namaBarang": "KURSI LIPAT FRONTLINE KLPB CHROME MERAH",
+    "stokAwal": 5,
+    "dataLaku": {},
+    "stokAkhir": 5
+  },
+  {
+    "depo": "GMB SLO PUSAT",
+    "gudang": "GD BAD STOCK DC SLO TH 2",
+    "productLine": "UMUM",
+    "namaBarang": "LEMARI PAKAIAN BESI OLYMPIC OSWS MARBLE 3P1L PUTIH",
+    "stokAwal": 1,
+    "dataLaku": {},
+    "stokAkhir": 1
+  },
+  {
+    "depo": "GMB SLO PUSAT",
+    "gudang": "GD SLOW MOVING DC SLO TH 2",
+    "productLine": "PANEL",
+    "namaBarang": "MEJA BELAJAR OLYMPIC SILVER MAA RUBIK WHITE",
+    "stokAwal": 3,
+    "dataLaku": {
+      "26": 1
+    },
+    "stokAkhir": 2
+  },
+  {
+    "depo": "GMB SLO PUSAT",
+    "gudang": "GD SLOW MOVING DC SLO TH 2",
+    "productLine": "PANEL",
+    "namaBarang": "MEJA TAMU OLYMPIC SILVER CT RUBIK 01 CREAM",
+    "stokAwal": 0,
+    "dataLaku": {
+      "27": 1
+    },
+    "stokAkhir": 0
+  },
+  {
+    "depo": "GMB SLO PUSAT",
+    "gudang": "GD SLOW MOVING DC SLO TH 2",
+    "productLine": "PLASTIK",
+    "namaBarang": "KURSI OLYMPLAST MILENIAL BIRU",
+    "stokAwal": 8,
+    "dataLaku": {},
+    "stokAkhir": 8
+  },
+  {
+    "depo": "GMB SLO PUSAT",
+    "gudang": "GD SLOW MOVING DC SLO TH 2",
+    "productLine": "UMUM",
+    "namaBarang": "MEJA MAKAN OLYMPIC DT FELMAN HITAM",
+    "stokAwal": 6,
+    "dataLaku": {},
+    "stokAkhir": 6
+  },
+  {
+    "depo": "GMB SLO PUSAT",
+    "gudang": "GD B.JADI DC SLO DR PST",
+    "productLine": "PLASTIK",
+    "namaBarang": "CRYSTAL DRAIN BOWL OLYMPLAST (CDBO) - PINK",
+    "stokAwal": 24,
+    "dataLaku": {},
+    "stokAkhir": 24
+  },
+  {
+    "depo": "GMB SLO PUSAT",
+    "gudang": "GD B.JADI DC SLO DR PST",
+    "productLine": "PLASTIK",
+    "namaBarang": "CRYSTAL ROTATING ORGANIZER OLYMPLAST L (CROO) - CRYSTAL",
+    "stokAwal": 20,
+    "dataLaku": {},
+    "stokAkhir": 20
+  },
+  {
+    "depo": "GMB SLO PUSAT",
+    "gudang": "GD B.JADI DC SLO DR PST",
+    "productLine": "OFFICE",
+    "namaBarang": "KURSI DIREKTUR FRONTLINE EC MELVIN HITAM",
+    "stokAwal": 1,
+    "dataLaku": {},
+    "stokAkhir": 1
+  },
+  {
+    "depo": "GMB SLO PUSAT",
+    "gudang": "GD B.JADI DC SLO DR PST",
+    "productLine": "OFFICE",
+    "namaBarang": "LEMARI ARSIP BESI FRONTLINE FC 06 ABU-ABU TUA & MUDA",
+    "stokAwal": 10,
+    "dataLaku": {},
+    "stokAkhir": 10
+  },
+  {
+    "depo": "GMB SLO PUSAT",
+    "gudang": "GD B.JADI DC SLO DR PST",
+    "productLine": "OFFICE",
+    "namaBarang": "LOCKER BESI FRONTLINE LOCKER 12T ABU-ABU TUA & MUDA",
+    "stokAwal": 5,
+    "dataLaku": {},
+    "stokAkhir": 5
+  },
+  {
+    "depo": "GMB SLO PUSAT",
+    "gudang": "GD B.JADI DC SLO DR PST",
+    "productLine": "UMUM",
+    "namaBarang": "LEMARI SEPATU BESI OLYMSTEEL SR 001 PUTIH",
+    "stokAwal": 15,
+    "dataLaku": {},
+    "stokAkhir": 15
+  },
+  {
+    "depo": "GMB SLO PUSAT",
+    "gudang": "GD B.JADI DC SLO DR PST",
+    "productLine": "UMUM",
+    "namaBarang": "LEMARI PAKAIAN BESI OLYMSTEEL OSWS FREYA 90 PUTIH",
+    "stokAwal": 12,
+    "dataLaku": {},
+    "stokAkhir": 12
+  },
+  {
+    "depo": "GMB SLO PUSAT",
+    "gudang": "GD B.JADI DC SLO DR PST",
+    "productLine": "UMUM",
+    "namaBarang": "LEMARI PAKAIAN BESI OLYMSTEEL OSWS FREYA 3P PUTIH",
+    "stokAwal": 11,
+    "dataLaku": {},
+    "stokAkhir": 11
+  },
+  {
+    "depo": "GMB SLO PUSAT",
+    "gudang": "GD B.JADI DC SLO DR PST",
+    "productLine": "UMUM",
+    "namaBarang": "LEMARI PAKAIAN BESI OLYMSTEEL OSWS LENO",
+    "stokAwal": 12,
+    "dataLaku": {},
+    "stokAkhir": 12
+  },
+  {
+    "depo": "GMB SLO PUSAT",
+    "gudang": "GD B.JADI DC SLO DR PST",
+    "productLine": "UMUM",
+    "namaBarang": "LEMARI PAKAIAN BESI OLYMSTEEL OSWS JALUSI 90 PUTIH-PUTIH",
+    "stokAwal": 9,
+    "dataLaku": {},
+    "stokAkhir": 9
+  },
+  {
+    "depo": "GMB SLO PUSAT",
+    "gudang": "GD B.JADI DC SLO DR PST",
+    "productLine": "UMUM",
+    "namaBarang": "LEMARI PAKAIAN BESI OLYMSTEEL OSWS RH ALBA",
+    "stokAwal": 3,
+    "dataLaku": {
+      "26": 1
+    },
+    "stokAkhir": 2
+  },
+  {
+    "depo": "GMB SLO PUSAT",
+    "gudang": "GD B.JADI DC SLO DR PST",
+    "productLine": "UMUM",
+    "namaBarang": "LEMARI PAKAIAN BESI OLYMSTEEL OSWS WS MAPLE 120",
+    "stokAwal": 8,
+    "dataLaku": {},
+    "stokAkhir": 8
+  },
+  {
+    "depo": "GMB SLO PUSAT",
+    "gudang": "GD B.JADI DC SLO DR PST",
+    "productLine": "UMUM",
+    "namaBarang": "LEMARI PAKAIAN BESI OLYMSTEEL OSWS WS MAHONI 120",
+    "stokAwal": 5,
+    "dataLaku": {},
+    "stokAkhir": 5
+  }
+].map(function(item, idx) {
+      return Object.assign({}, item, {
+        id: "item-" + (idx + 1),
+        satuan: "Unit"
+      });
+    });
+
+    var currentTipe = 'KELUAR';
+    var selectedItem = null;
+    var riwayatMutasi = [];
+
+    // Muat dari localStorage jika sebelumnya ada transaksi
+    var savedInv = localStorage.getItem('gmb_slo_github_inv');
+    if (savedInv) {
+      try { masterItems = JSON.parse(savedInv); } catch(e){}
+    }
+
+    var savedTx = localStorage.getItem('gmb_slo_github_tx');
+    if (savedTx) {
+      try { riwayatMutasi = JSON.parse(savedTx); } catch(e){}
+    }
+
+    window.addEventListener('load', function() {
+      document.getElementById('inputTglDok').value = new Date().toISOString().slice(0, 10);
+      populateGudangSelects();
+      populateDates();
+      populateJenisTransaksi();
+      filterItems();
+      updateHeaderBadges();
+      renderTabelLaporan();
+      renderTabelRiwayat();
+    });
+
+    function populateGudangSelects() {
+      var select1 = document.getElementById('inputGudang');
+      var select2 = document.getElementById('filterGudangTabel');
+
+      masterGudang.forEach(function(g) {
+        var opt1 = document.createElement('option');
+        opt1.value = g;
+        opt1.textContent = g;
+        select1.appendChild(opt1);
+
+        var opt2 = document.createElement('option');
+        opt2.value = g;
+        opt2.textContent = g;
+        select2.appendChild(opt2);
+      });
+    }
+
+    function populateDates() {
+      var group = document.getElementById('optGroupBulanBerjalan');
+      for (var d = 1; d <= 31; d++) {
+        var opt = document.createElement('option');
+        opt.value = String(d);
+        opt.textContent = "Tanggal " + d;
+        group.appendChild(opt);
+      }
+    }
+
+    function populateJenisTransaksi() {
+      var select = document.getElementById('inputJenisTransaksi');
+      select.innerHTML = '';
+      var list = currentTipe === 'MASUK' 
+        ? ['Penerimaan dari Pabrik / Pusat', 'Mutasi Masuk Antar Gudang', 'Retur Penjualan / Toko', 'Koreksi Stok Opname']
+        : ['Penjualan Laku Harian (Matrix Sheet)', 'Pengiriman Toko (Surat Jalan/DO)', 'Mutasi Keluar Antar Gudang', 'Retur ke Pabrik', 'Koreksi Stok Opname'];
+      
+      list.forEach(function(item) {
+        var opt = document.createElement('option');
+        opt.value = item;
+        opt.textContent = item;
+        select.appendChild(opt);
+      });
+    }
+
+    function switchTab(tab) {
+      var viewIn = document.getElementById('viewInput');
+      var viewLap = document.getElementById('viewLaporan');
+      var viewRiw = document.getElementById('viewRiwayat');
+
+      var navIn = document.getElementById('navTabInput');
+      var navLap = document.getElementById('navTabLaporan');
+      var navRiw = document.getElementById('navTabRiwayat');
+
+      [navIn, navLap, navRiw].forEach(function(b) {
+        b.className = "px-3.5 py-1.5 rounded-lg text-xs sm:text-sm font-semibold text-slate-300 hover:text-white hover:bg-slate-800";
+      });
+
+      viewIn.classList.add('hidden');
+      viewLap.classList.add('hidden');
+      viewRiw.classList.add('hidden');
+
+      if (tab === 'input') {
+        viewIn.classList.remove('hidden');
+        navIn.className = "px-3.5 py-1.5 rounded-lg text-xs sm:text-sm font-bold bg-amber-500 text-slate-950 shadow";
+      } else if (tab === 'laporan') {
+        viewLap.classList.remove('hidden');
+        navLap.className = "px-3.5 py-1.5 rounded-lg text-xs sm:text-sm font-bold bg-amber-500 text-slate-950 shadow";
+        renderTabelLaporan();
+      } else if (tab === 'riwayat') {
+        viewRiw.classList.remove('hidden');
+        navRiw.className = "px-3.5 py-1.5 rounded-lg text-xs sm:text-sm font-bold bg-amber-500 text-slate-950 shadow";
+        renderTabelRiwayat();
+      }
+    }
+
+    function setTipe(tipe) {
+      currentTipe = tipe;
+      var btnK = document.getElementById('btnTipeKeluar');
+      var btnM = document.getElementById('btnTipeMasuk');
+      var banner = document.getElementById('formBanner');
+      var title = document.getElementById('formTitle');
+      var desc = document.getElementById('formDesc');
+      var badge = document.getElementById('tipeBadge');
+      var btnSubmit = document.getElementById('btnSubmitForm');
+      var lblPihak = document.getElementById('lblPihakTerkait');
+
+      if (tipe === 'MASUK') {
+        btnM.className = "py-3.5 px-4 rounded-xl font-bold text-sm sm:text-base bg-emerald-600 text-white shadow-lg shadow-emerald-600/30 transition";
+        btnK.className = "py-3.5 px-4 rounded-xl font-bold text-sm sm:text-base text-slate-600 hover:bg-slate-100 transition";
+        banner.className = "px-6 py-4 bg-emerald-50 border-b border-emerald-100 flex items-center justify-between";
+        title.textContent = "Form Input Pemasukan Barang (Inbound)";
+        desc.textContent = "Mencatat penambahan stok persediaan barang masuk dari pabrik / pusat / retur";
+        badge.className = "px-3 py-1 rounded-full text-xs font-black bg-emerald-200 text-emerald-900 uppercase";
+        badge.textContent = "MASUK";
+        btnSubmit.className = "w-full py-4 rounded-xl font-black text-white shadow-xl bg-emerald-600 hover:bg-emerald-700 transition flex items-center justify-center gap-2";
+        btnSubmit.innerHTML = "<span>Simpan Transaksi Pemasukan Lengkap</span>";
+        lblPihak.textContent = "Pabrik / Supplier Asal:";
+        document.getElementById('colTanggalMatrixWrap').classList.add('opacity-40');
+      } else {
+        btnK.className = "py-3.5 px-4 rounded-xl font-bold text-sm sm:text-base bg-rose-600 text-white shadow-lg shadow-rose-600/30 transition";
+        btnM.className = "py-3.5 px-4 rounded-xl font-bold text-sm sm:text-base text-slate-600 hover:bg-slate-100 transition";
+        banner.className = "px-6 py-4 bg-rose-50 border-b border-rose-100 flex items-center justify-between";
+        title.textContent = "Form Input Pengeluaran Barang / Laku (Outbound)";
+        desc.textContent = "Mencatat barang keluar / laku dan langsung mengupdate stok serta kolom tanggal matrix spreadsheet";
+        badge.className = "px-3 py-1 rounded-full text-xs font-black bg-rose-200 text-rose-900 uppercase";
+        badge.textContent = "KELUAR";
+        btnSubmit.className = "w-full py-4 rounded-xl font-black text-white shadow-xl bg-rose-600 hover:bg-rose-700 transition flex items-center justify-center gap-2";
+        btnSubmit.innerHTML = "<span>Simpan Transaksi Pengeluaran Lengkap</span>";
+        lblPihak.textContent = "Nama Toko / Penerima:";
+        document.getElementById('colTanggalMatrixWrap').classList.remove('opacity-40');
+      }
+
+      populateJenisTransaksi();
+      updateEstimasiStok();
+    }
+
+    function filterItems() {
+      var gudang = document.getElementById('inputGudang').value;
+      var search = document.getElementById('inputSearch').value.toLowerCase().trim();
+
+      var filtered = masterItems.filter(function(item) {
+        var matchG = !gudang || item.gudang === gudang;
+        var matchS = !search || item.namaBarang.toLowerCase().indexOf(search) !== -1 || item.productLine.toLowerCase().indexOf(search) !== -1;
+        return matchG && matchS;
+      });
+
+      document.getElementById('itemCountDisplay').textContent = filtered.length + " barang ditemukan";
+
+      var container = document.getElementById('listBarangContainer');
+      container.innerHTML = '';
+
+      if (filtered.length === 0) {
+        container.innerHTML = '<div class="p-4 text-center text-slate-400">Tidak ada barang yang cocok dengan kata kunci pencarian.</div>';
+        return;
+      }
+
+      filtered.forEach(function(item) {
+        var div = document.createElement('div');
+        div.className = "p-2.5 sm:p-3 hover:bg-amber-50 cursor-pointer flex items-center justify-between gap-2 border-b border-slate-100";
+        div.onclick = function() {
+          pilihBarang(item);
+        };
+        div.innerHTML = '<div>' +
+          '<div class="flex items-center gap-1.5"><span class="px-1.5 py-0.5 rounded bg-slate-100 font-bold text-[9px]">' + item.productLine + '</span><span class="text-[10px] text-slate-400">' + item.gudang + '</span></div>' +
+          '<p class="font-bold text-slate-900 mt-0.5">' + item.namaBarang + '</p>' +
+        '</div>' +
+        '<span class="px-2 py-0.5 rounded font-black text-xs ' + (item.stokAkhir > 0 ? 'bg-emerald-100 text-emerald-800' : 'bg-rose-100 text-rose-800') + '">Stok: ' + item.stokAkhir + '</span>';
+        container.appendChild(div);
+      });
+    }
+
+    function pilihBarang(item) {
+      selectedItem = item;
+      document.getElementById('cardBarangTerpilih').classList.remove('hidden');
+      document.getElementById('listBarangWrapper').classList.add('hidden');
+
+      document.getElementById('badgeProdLine').textContent = item.productLine;
+      document.getElementById('badgeGudang').textContent = item.gudang;
+      document.getElementById('namaBarangTerpilih').textContent = item.namaBarang;
+      document.getElementById('stokSaatIniVal').textContent = item.stokAkhir + " Unit";
+
+      updateEstimasiStok();
+    }
+
+    function batalPilihBarang() {
+      selectedItem = null;
+      document.getElementById('cardBarangTerpilih').classList.add('hidden');
+      document.getElementById('listBarangWrapper').classList.remove('hidden');
+    }
+
+    function updateEstimasiStok() {
+      if (!selectedItem) return;
+      var qty = parseInt(document.getElementById('inputQty').value, 10) || 0;
+      var lbl = document.getElementById('labelMutasi');
+      var valMut = document.getElementById('valMutasi');
+      var valAkhir = document.getElementById('valEstimasiAkhir');
+
+      if (currentTipe === 'MASUK') {
+        lbl.textContent = "MUTASI MASUK";
+        valMut.className = "font-black text-sm text-emerald-600";
+        valMut.textContent = "+" + qty + " Unit";
+        valAkhir.textContent = (selectedItem.stokAkhir + qty) + " Unit";
+      } else {
+        lbl.textContent = "MUTASI KELUAR";
+        valMut.className = "font-black text-sm text-rose-600";
+        valMut.textContent = "-" + qty + " Unit";
+        valAkhir.textContent = Math.max(0, selectedItem.stokAkhir - qty) + " Unit";
+      }
+    }
+
+    function handleFormSubmit(e) {
+      e.preventDefault();
+      if (!selectedItem) {
+        alert("Silakan pilih barang terlebih dahulu!");
+        return;
+      }
+
+      var qty = parseInt(document.getElementById('inputQty').value, 10);
+      if (currentTipe === 'KELUAR' && selectedItem.stokAkhir < qty) {
+        alert("Stok tidak mencukupi! Sisa stok hanya " + selectedItem.stokAkhir + " unit.");
+        return;
+      }
+
+      var idx = masterItems.findIndex(function(x) { return x.id === selectedItem.id; });
+      if (idx !== -1) {
+        var sAwal = masterItems[idx].stokAkhir;
+        var sAkhir = currentTipe === 'MASUK' ? sAwal + qty : Math.max(0, sAwal - qty);
+        masterItems[idx].stokAkhir = sAkhir;
+
+        var tglLaku = document.getElementById('inputTanggalLaku').value;
+        if (currentTipe === 'KELUAR' && tglLaku) {
+          masterItems[idx].dataLaku[tglLaku] = (masterItems[idx].dataLaku[tglLaku] || 0) + qty;
+        }
+
+        // Simpan ke log
+        var newTx = {
+          waktu: new Date().toLocaleDateString('id-ID') + ' ' + new Date().toLocaleTimeString('id-ID'),
+          tipe: currentTipe,
+          gudang: selectedItem.gudang,
+          namaBarang: selectedItem.namaBarang,
+          jumlah: qty,
+          noDok: document.getElementById('inputNoDok').value || (currentTipe === 'MASUK' ? 'SJ-IN' : 'SJ-OUT'),
+          pihak: document.getElementById('inputPihak').value || '-',
+          petugas: document.getElementById('inputPetugas').value || 'Staff'
+        };
+        riwayatMutasi.unshift(newTx);
+
+        // Sync ke localStorage
+        localStorage.setItem('gmb_slo_github_inv', JSON.stringify(masterItems));
+        localStorage.setItem('gmb_slo_github_tx', JSON.stringify(riwayatMutasi));
+
+        alert("Sukses! Transaksi " + currentTipe + " sebanyak " + qty + " unit (" + selectedItem.namaBarang + ") berhasil disimpan!");
+        document.getElementById('inputQty').value = "1";
+        document.getElementById('inputNoDok').value = "";
+        document.getElementById('inputNoPO').value = "";
+        document.getElementById('inputKet').value = "";
+        batalPilihBarang();
+        filterItems();
+        updateHeaderBadges();
+      }
+    }
+
+    function updateHeaderBadges() {
+      var totalUnits = masterItems.reduce(function(a, b) { return a + b.stokAkhir; }, 0);
+      document.getElementById('totalSkuBadge').textContent = masterItems.length + " SKU • " + totalUnits.toLocaleString('id-ID') + " Unit Fisik";
+      document.getElementById('totalStokUnitDisplay').textContent = "Total Keseluruhan: " + totalUnits.toLocaleString('id-ID') + " Unit";
+      document.getElementById('riwayatCountBadge').textContent = riwayatMutasi.length + " Transaksi Tercatat";
+    }
+
+    function renderTabelLaporan() {
+      var q = document.getElementById('searchTabelLaporan').value.toLowerCase().trim();
+      var g = document.getElementById('filterGudangTabel').value;
+      var tbody = document.getElementById('tabelLaporanBody');
+      tbody.innerHTML = '';
+
+      var filtered = masterItems.filter(function(it) {
+        var mG = !g || it.gudang === g;
+        var mS = !q || it.namaBarang.toLowerCase().indexOf(q) !== -1;
+        return mG && mS;
+      });
+
+      if (filtered.length === 0) {
+        tbody.innerHTML = '<tr><td colspan="7" class="p-6 text-center text-slate-400">Tidak ada barang yang cocok.</td></tr>';
+        return;
+      }
+
+      filtered.forEach(function(item, idx) {
+        var totalLaku = Object.values(item.dataLaku).reduce(function(a, b) { return a + b; }, 0);
+        var tr = document.createElement('tr');
+        tr.className = "hover:bg-amber-50/50 border-b border-slate-100";
+        tr.innerHTML = '<td class="py-2.5 px-4 font-mono text-slate-400">' + (idx + 1) + '</td>' +
+          '<td class="py-2.5 px-4 font-medium text-slate-600"><span class="bg-slate-100 px-2 py-0.5 rounded text-[10px]">' + item.gudang + '</span></td>' +
+          '<td class="py-2.5 px-4"><span class="px-1.5 py-0.5 rounded text-[9px] font-black bg-indigo-50 text-indigo-700">' + item.productLine + '</span></td>' +
+          '<td class="py-2.5 px-4 font-bold text-slate-900">' + item.namaBarang + '</td>' +
+          '<td class="py-2.5 px-4 text-center font-mono font-medium">' + item.stokAwal + '</td>' +
+          '<td class="py-2.5 px-4 text-center font-mono font-bold text-rose-600">' + (totalLaku > 0 ? '-' + totalLaku : '0') + '</td>' +
+          '<td class="py-2.5 px-4 text-center font-mono font-black text-sm text-slate-900">' + item.stokAkhir + '</td>';
+        tbody.appendChild(tr);
+      });
+    }
+
+    function renderTabelRiwayat() {
+      var tbody = document.getElementById('tabelRiwayatBody');
+      tbody.innerHTML = '';
+
+      if (riwayatMutasi.length === 0) {
+        tbody.innerHTML = '<tr><td colspan="8" class="p-6 text-center text-slate-400">Belum ada transaksi pada sesi ini.</td></tr>';
+        return;
+      }
+
+      riwayatMutasi.forEach(function(tx) {
+        var isMasuk = tx.tipe === 'MASUK';
+        var tr = document.createElement('tr');
+        tr.className = "hover:bg-slate-50 border-b border-slate-100";
+        tr.innerHTML = '<td class="py-2.5 px-4 font-mono text-slate-500">' + tx.waktu + '</td>' +
+          '<td class="py-2.5 px-4 text-center"><span class="px-2 py-0.5 rounded-full text-[10px] font-black ' + (isMasuk ? 'bg-emerald-100 text-emerald-800' : 'bg-rose-100 text-rose-800') + '">' + tx.tipe + '</span></td>' +
+          '<td class="py-2.5 px-4 text-slate-700">' + tx.gudang + '</td>' +
+          '<td class="py-2.5 px-4 font-bold text-slate-900">' + tx.namaBarang + '</td>' +
+          '<td class="py-2.5 px-4 text-center font-mono font-black ' + (isMasuk ? 'text-emerald-600' : 'text-rose-600') + '">' + (isMasuk ? '+' : '-') + tx.jumlah + '</td>' +
+          '<td class="py-2.5 px-4 font-mono text-slate-700">' + tx.noDok + '</td>' +
+          '<td class="py-2.5 px-4 text-slate-600">' + tx.pihak + '</td>' +
+          '<td class="py-2.5 px-4 text-slate-500">' + tx.petugas + '</td>';
+        tbody.appendChild(tr);
+      });
+    }
+  </script>
+</body>
+</html>
