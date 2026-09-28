@@ -66,13 +66,17 @@
 
     <!-- VIEW 1: FORM INPUT TRANSAKSI (LENGKAP DENGAN BARANG TERPILIH & TAMBAH CEPAT) -->
     <section id="viewInput" class="max-w-5xl mx-auto space-y-6">
-      <!-- Selector Masuk / Keluar -->
-      <div class="bg-white rounded-2xl p-2 shadow-sm border border-slate-200 grid grid-cols-2 gap-2">
-        <button type="button" onclick="setTipe('KELUAR')" id="btnTipeKeluar" class="py-3.5 px-4 rounded-xl font-bold text-sm sm:text-base bg-rose-600 text-white shadow-lg shadow-rose-600/30 transition">
+      <!-- Selector Masuk / Keluar / Master Barang -->
+      <div class="bg-white rounded-2xl p-2 shadow-sm border border-slate-200 grid grid-cols-1 sm:grid-cols-3 gap-2">
+        <button type="button" onclick="setTipe('KELUAR')" id="btnTipeKeluar" class="py-3.5 px-4 rounded-xl font-bold text-xs sm:text-base bg-rose-600 text-white shadow-lg shadow-rose-600/30 transition">
           Pengeluaran (Barang Keluar / Laku)
         </button>
-        <button type="button" onclick="setTipe('MASUK')" id="btnTipeMasuk" class="py-3.5 px-4 rounded-xl font-bold text-sm sm:text-base text-slate-600 hover:bg-slate-100 transition">
+        <button type="button" onclick="setTipe('MASUK')" id="btnTipeMasuk" class="py-3.5 px-4 rounded-xl font-bold text-xs sm:text-base text-slate-600 hover:bg-slate-100 transition">
           Pemasukan (Barang Masuk / Tambah Stok)
+        </button>
+        <button type="button" onclick="switchTab('master')" class="py-3.5 px-4 rounded-xl font-bold text-xs sm:text-base text-amber-900 bg-amber-50 hover:bg-amber-100 border border-amber-300 transition flex items-center justify-center gap-1.5 shadow-sm">
+          <span class="text-amber-600 font-black text-lg">＋</span>
+          <span>Master Barang (Tambah Barang Baru)</span>
         </button>
       </div>
 
