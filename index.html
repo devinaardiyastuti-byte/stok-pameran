@@ -64,7 +64,7 @@
   <!-- MAIN CONTAINER -->
   <main class="flex-1 max-w-7xl w-full mx-auto px-4 sm:px-6 py-6 sm:py-8 space-y-6">
 
-    <!-- VIEW 1: FORM INPUT TRANSAKSI (LENGKAP DENGAN BARANG TERPILIH) -->
+    <!-- VIEW 1: FORM INPUT TRANSAKSI (LENGKAP DENGAN BARANG TERPILIH & TAMBAH CEPAT) -->
     <section id="viewInput" class="max-w-5xl mx-auto space-y-6">
       <!-- Selector Masuk / Keluar -->
       <div class="bg-white rounded-2xl p-2 shadow-sm border border-slate-200 grid grid-cols-2 gap-2">
@@ -114,8 +114,11 @@
                 <label class="block text-xs font-bold text-slate-700 uppercase mb-1">Cari Nama Barang:</label>
                 <div class="flex gap-2">
                   <input type="text" id="inputSearch" oninput="filterItems()" placeholder="Ketik nama barang..." class="flex-1 bg-white border border-slate-300 rounded-xl px-3 py-2 text-xs font-medium">
-                  <button type="button" onclick="openMasterModal()" class="px-3 py-2 rounded-xl bg-amber-500 hover:bg-amber-400 text-slate-950 font-bold text-xs shrink-0 shadow">
-                    + Baru
+                  <button type="button" onclick="openMasterModal(document.getElementById('inputSearch').value, true)" class="px-3 py-2 rounded-xl bg-amber-500 hover:bg-amber-400 text-slate-950 font-bold text-xs shrink-0 shadow flex items-center gap-1 active:scale-95" title="Tambah barang baru dan langsung pilih untuk transaksi ini">
+                    <span>+ Tambah Cepat</span>
+                  </button>
+                  <button type="button" onclick="switchTab('master')" class="px-2.5 py-2 rounded-xl bg-slate-200 hover:bg-slate-300 text-slate-700 font-semibold text-xs shrink-0" title="Buka menu lengkap Master Barang">
+                    Master
                   </button>
                 </div>
               </div>
@@ -180,6 +183,7 @@
                   <option value="Pcs">Pcs</option>
                   <option value="Set">Set</option>
                   <option value="Dus / Box">Dus / Box</option>
+                  <option value="Lembar">Lembar</option>
                 </select>
               </div>
               <div>
@@ -195,7 +199,7 @@
 
           <!-- 3. Legalitas, Dokumen & Logistik -->
           <div class="p-4 sm:p-5 rounded-2xl bg-slate-50 border border-slate-200 space-y-3">
-            <h3 class="text-xs font-bold uppercase tracking-wider text-slate-900">
+            <h3 class="text-xs sm:text-sm font-bold uppercase tracking-wider text-slate-900">
               3. Data Dokumen, Logistik & Legalitas
             </h3>
 
@@ -250,6 +254,7 @@
                   <option value="Karanganyar">Karanganyar</option>
                   <option value="Boyolali">Boyolali</option>
                   <option value="Sragen">Sragen</option>
+                  <option value="Wonogiri">Wonogiri</option>
                 </select>
               </div>
             </div>
@@ -303,6 +308,7 @@
                 <th class="py-3 px-4 font-bold">Nama Barang</th>
                 <th class="py-3 px-3 font-bold text-center">Stok Awal</th>
                 <th class="py-3 px-3 font-bold text-center">Stok Terkini</th>
+                <th class="py-3 px-3 font-bold text-center">Status</th>
               </tr>
             </thead>
             <tbody id="tabelLaporanBody" class="divide-y divide-slate-100">
@@ -313,31 +319,112 @@
       </div>
     </section>
 
-    <!-- VIEW 3: MASTER BARANG -->
-    <section id="viewMaster" class="hidden space-y-4">
+    <!-- VIEW 3: MASTER BARANG (LENGKAP DENGAN CARA PENAMBAHAN, BATCH IMPORT, CSV & EDIT) -->
+    <section id="viewMaster" class="hidden space-y-5">
+      <!-- Top Banner Master -->
+      <div class="bg-gradient-to-r from-slate-900 via-indigo-950 to-slate-900 rounded-3xl p-6 text-white shadow-xl flex flex-col md:flex-row items-start md:items-center justify-between gap-5 relative overflow-hidden border border-indigo-900/40">
+        <div class="space-y-2 relative z-10">
+          <div class="inline-flex items-center gap-1.5 px-3 py-1 rounded-full bg-amber-500/20 text-amber-300 border border-amber-400/30 text-xs font-bold">
+            <span>📦 Manajemen Master Data Barang</span>
+          </div>
+          <h2 class="text-xl sm:text-2xl font-black text-white">
+            Master Data Barang Persediaan (GMB SLO)
+          </h2>
+          <p class="text-xs text-slate-300 max-w-2xl leading-relaxed">
+            Kelola katalog barang persediaan. Barang baru yang belum terdaftar dapat ditambahkan satu per satu, diimpor massal (copy-paste dari Excel), atau langsung didaftarkan saat mencatat transaksi masuk!
+          </p>
+          <div class="flex flex-wrap items-center gap-3 pt-2 text-xs">
+            <div class="bg-slate-800/80 px-3 py-1.5 rounded-xl border border-slate-700 text-slate-200">
+              Total SKU: <strong id="masterCountSku" class="text-amber-300 font-bold">0</strong> Barang
+            </div>
+            <div class="bg-slate-800/80 px-3 py-1.5 rounded-xl border border-slate-700 text-slate-200">
+              Total Fisik: <strong id="masterCountStok" class="text-blue-300 font-bold">0</strong> Unit
+            </div>
+            <div class="bg-rose-950/60 px-3 py-1.5 rounded-xl border border-rose-800/60 text-rose-300">
+              Stok 0: <strong id="masterCountHabis" class="text-white font-bold">0</strong> SKU
+            </div>
+          </div>
+        </div>
+
+        <div class="flex flex-wrap md:flex-col gap-2 shrink-0 relative z-10 w-full md:w-auto">
+          <button onclick="openMasterModal()" class="flex-1 md:flex-none px-4 py-2.5 rounded-xl bg-amber-500 hover:bg-amber-400 text-slate-950 font-black text-xs sm:text-sm flex items-center justify-center gap-1.5 shadow-lg active:scale-95 transition">
+            <span>+ Tambah Barang Baru</span>
+          </button>
+          <button onclick="openBatchModal()" class="flex-1 md:flex-none px-4 py-2 rounded-xl bg-slate-800 hover:bg-slate-700 text-slate-200 font-bold text-xs border border-slate-700 flex items-center justify-center gap-1.5 transition">
+            <span>📋 Impor Massal (Excel)</span>
+          </button>
+          <button onclick="exportMasterCSV()" class="flex-1 md:flex-none px-4 py-2 rounded-xl bg-slate-800 hover:bg-slate-700 text-slate-200 font-bold text-xs border border-slate-700 flex items-center justify-center gap-1.5 transition">
+            <span>📥 Ekspor CSV</span>
+          </button>
+        </div>
+      </div>
+
+      <!-- Tiga Cara Penambahan Barang Baru -->
+      <div class="grid grid-cols-1 md:grid-cols-3 gap-3.5">
+        <div class="p-4 rounded-2xl bg-white border border-slate-200 shadow-sm space-y-1.5">
+          <div class="flex items-center gap-2 text-indigo-700 font-bold text-xs">
+            <span class="w-5 h-5 rounded-full bg-indigo-100 flex items-center justify-center text-indigo-800 text-[11px] font-black">1</span>
+            <span>Menu Master Barang / Cepat</span>
+          </div>
+          <p class="text-xs text-slate-600 leading-relaxed">
+            Klik tombol <strong>"+ Tambah Barang Baru"</strong> di atas atau tombol <strong>"+ Tambah Cepat"</strong> di form transaksi. Barang langsung aktif di semua tabel.
+          </p>
+        </div>
+
+        <div class="p-4 rounded-2xl bg-white border border-slate-200 shadow-sm space-y-1.5">
+          <div class="flex items-center gap-2 text-emerald-700 font-bold text-xs">
+            <span class="w-5 h-5 rounded-full bg-emerald-100 flex items-center justify-center text-emerald-800 text-[11px] font-black">2</span>
+            <span>Impor Massal (Copy-Paste)</span>
+          </div>
+          <p class="text-xs text-slate-600 leading-relaxed">
+            Punya puluhan nama barang di Excel? Klik <strong>"Impor Massal (Excel)"</strong> dan tempelkan kolom nama barang untuk memasukkannya sekaligus!
+          </p>
+        </div>
+
+        <div class="p-4 rounded-2xl bg-white border border-slate-200 shadow-sm space-y-1.5">
+          <div class="flex items-center gap-2 text-amber-700 font-bold text-xs">
+            <span class="w-5 h-5 rounded-full bg-amber-100 flex items-center justify-center text-amber-800 text-[11px] font-black">3</span>
+            <span>Otomatis Saat Transaksi Masuk</span>
+          </div>
+          <p class="text-xs text-slate-600 leading-relaxed">
+            Jika ada penerimaan pabrik untuk barang baru, cukup tambah cepat di transaksi <strong>MASUK</strong> dan stok barang tersebut otomatis terdaftar.
+          </p>
+        </div>
+      </div>
+
+      <!-- Tabel Master Barang -->
       <div class="bg-white rounded-2xl p-5 border border-slate-200 shadow-sm space-y-4">
         <div class="flex flex-col sm:flex-row items-stretch sm:items-center justify-between gap-3">
-          <div>
-            <h2 class="text-base sm:text-lg font-black text-slate-900">
-              Master Data Barang Persediaan
-            </h2>
-            <p class="text-xs text-slate-500">Kelola dan daftarkan barang baru ke dalam katalog</p>
+          <div class="flex-1">
+            <input type="text" id="filterMasterSearch" oninput="renderTabelMaster()" placeholder="Cari SKU / nama barang di Master..." class="w-full bg-slate-50 border border-slate-300 rounded-xl px-3 py-2 text-xs">
           </div>
-          <button onclick="openMasterModal()" class="px-4 py-2 rounded-xl bg-amber-500 hover:bg-amber-400 text-slate-950 font-bold text-xs shadow flex items-center gap-1.5">
-            + Tambah Master Barang Baru
-          </button>
+          <div class="flex gap-2">
+            <select id="filterMasterGudang" onchange="renderTabelMaster()" class="bg-slate-50 border border-slate-300 rounded-xl px-3 py-2 text-xs font-semibold">
+              <option value="">Semua Gudang</option>
+            </select>
+            <select id="filterMasterLine" onchange="renderTabelMaster()" class="bg-slate-50 border border-slate-300 rounded-xl px-3 py-2 text-xs font-semibold">
+              <option value="">Semua Kategori</option>
+              <option value="PANEL">PANEL</option>
+              <option value="PLASTIK">PLASTIK</option>
+              <option value="OFFICE">OFFICE</option>
+              <option value="UMUM">UMUM</option>
+            </select>
+          </div>
         </div>
 
         <div class="overflow-x-auto border border-slate-200 rounded-xl">
           <table class="w-full text-left text-xs border-collapse">
             <thead class="bg-slate-900 text-white uppercase text-[11px]">
               <tr>
-                <th class="py-3 px-3 font-bold text-center">No</th>
+                <th class="py-3 px-3 font-bold text-center w-12">No</th>
                 <th class="py-3 px-3 font-bold">Gudang</th>
                 <th class="py-3 px-3 font-bold">Line</th>
                 <th class="py-3 px-4 font-bold">Nama Barang</th>
                 <th class="py-3 px-3 font-bold text-center">Satuan</th>
+                <th class="py-3 px-3 font-bold text-center">Stok Awal</th>
                 <th class="py-3 px-3 font-bold text-center">Stok Terkini</th>
+                <th class="py-3 px-3 font-bold text-center">Status</th>
+                <th class="py-3 px-3 font-bold text-center">Aksi</th>
               </tr>
             </thead>
             <tbody id="tabelMasterBody" class="divide-y divide-slate-100">
@@ -379,11 +466,14 @@
 
   </main>
 
-  <!-- MODAL MASTER BARANG -->
+  <!-- MODAL MASTER BARANG (TAMBAH SATUAN & QUICK ADD) -->
   <div id="modalMasterBarang" class="hidden fixed inset-0 z-50 bg-slate-900/60 backdrop-blur-sm flex items-center justify-center p-4">
     <div class="bg-white rounded-3xl max-w-md w-full p-6 shadow-2xl space-y-4 border-2 border-amber-400">
       <div class="flex items-center justify-between pb-2 border-b border-slate-100">
-        <h3 class="font-black text-slate-900 text-base">Tambah Master Barang Baru</h3>
+        <div class="flex items-center gap-2">
+          <span class="w-3 h-3 rounded-full bg-amber-500"></span>
+          <h3 id="modalMasterTitle" class="font-black text-slate-900 text-base">Tambah Master Barang Baru</h3>
+        </div>
         <button onclick="closeMasterModal()" class="text-slate-400 hover:text-slate-600">✕</button>
       </div>
 
@@ -411,8 +501,9 @@
 
         <div class="grid grid-cols-2 gap-3">
           <div>
-            <label class="block font-bold text-slate-700 mb-1">Stok Awal</label>
+            <label class="block font-bold text-slate-700 mb-1">Stok Awal Fisik</label>
             <input type="number" id="modalStokInput" value="0" min="0" class="w-full bg-slate-50 border border-slate-300 rounded-xl px-3 py-2 font-bold">
+            <span class="text-[10px] text-slate-400 mt-0.5 block">Isi 0 jika masuk nanti</span>
           </div>
           <div>
             <label class="block font-bold text-slate-700 mb-1">Satuan</label>
@@ -420,15 +511,63 @@
               <option value="Unit">Unit</option>
               <option value="Pcs">Pcs</option>
               <option value="Set">Set</option>
+              <option value="Dus / Box">Dus / Box</option>
+              <option value="Lembar">Lembar</option>
             </select>
           </div>
         </div>
 
         <div class="pt-2 flex items-center justify-end gap-2">
           <button type="button" onclick="closeMasterModal()" class="px-4 py-2 rounded-xl border border-slate-300 font-semibold text-slate-600">Batal</button>
-          <button type="submit" class="px-5 py-2 rounded-xl bg-amber-500 hover:bg-amber-400 text-slate-950 font-bold shadow">Simpan Barang</button>
+          <button type="submit" id="btnModalMasterSubmit" class="px-5 py-2 rounded-xl bg-amber-500 hover:bg-amber-400 text-slate-950 font-bold shadow active:scale-95 transition">
+            Simpan Barang
+          </button>
         </div>
       </form>
+    </div>
+  </div>
+
+  <!-- MODAL BATCH IMPORT (COPY-PASTE DARI EXCEL) -->
+  <div id="modalBatchImport" class="hidden fixed inset-0 z-50 bg-slate-900/60 backdrop-blur-sm flex items-center justify-center p-4">
+    <div class="bg-white rounded-3xl max-w-lg w-full p-6 shadow-2xl space-y-4 border-2 border-slate-300">
+      <div class="flex items-center justify-between pb-2 border-b border-slate-100">
+        <h3 class="font-black text-slate-900 text-base flex items-center gap-2">
+          <span>📋 Impor Massal Barang (Copy-Paste Excel)</span>
+        </h3>
+        <button onclick="closeBatchModal()" class="text-slate-400 hover:text-slate-600">✕</button>
+      </div>
+
+      <div class="space-y-3 text-xs">
+        <div class="grid grid-cols-1 sm:grid-cols-2 gap-3">
+          <div>
+            <label class="block font-bold text-slate-700 mb-1">Gudang Target *</label>
+            <select id="batchGudangSelect" class="w-full bg-slate-50 border border-slate-300 rounded-xl px-3 py-2 font-semibold">
+            </select>
+          </div>
+          <div>
+            <label class="block font-bold text-slate-700 mb-1">Product Line Default *</label>
+            <select id="batchLineSelect" class="w-full bg-slate-50 border border-slate-300 rounded-xl px-3 py-2 font-semibold">
+              <option value="PANEL">PANEL</option>
+              <option value="PLASTIK">PLASTIK</option>
+              <option value="OFFICE">OFFICE</option>
+              <option value="UMUM">UMUM</option>
+            </select>
+          </div>
+        </div>
+
+        <div>
+          <label class="block font-bold text-slate-700 mb-1">Tempelkan Daftar Barang (Satu per Baris):</label>
+          <textarea id="batchTextarea" rows="6" placeholder="Contoh:&#10;LEMARI OLYMPIC LP 3 PINTU&#10;MEJA KERJA OFFICE SILVER&#10;KURSI PLASTIK OLYMPLAST OL 201" class="w-full bg-slate-50 border border-slate-300 rounded-xl p-3 font-mono text-xs"></textarea>
+          <span class="text-[10px] text-slate-400 mt-1 block">Cukup salin kolom nama barang dari lembar Excel/Sheets dan tempel di sini.</span>
+        </div>
+
+        <div class="pt-2 flex items-center justify-end gap-2">
+          <button type="button" onclick="closeBatchModal()" class="px-4 py-2 rounded-xl border border-slate-300 font-semibold text-slate-600">Batal</button>
+          <button type="button" onclick="processBatchImport()" class="px-5 py-2 rounded-xl bg-amber-500 hover:bg-amber-400 text-slate-950 font-bold shadow active:scale-95 transition">
+            Proses & Tambahkan Semua
+          </button>
+        </div>
+      </div>
     </div>
   </div>
 
@@ -1967,6 +2106,7 @@
     var currentTipe = 'KELUAR';
     var selectedItem = null;
     var riwayatMutasi = [];
+    var autoSelectAfterAdd = false;
 
     var savedInv = localStorage.getItem('gmb_slo_github_inv');
     if (savedInv) {
@@ -1993,6 +2133,8 @@
       var select1 = document.getElementById('inputGudang');
       var select2 = document.getElementById('filterGudangTabel');
       var selectModal = document.getElementById('modalGudangSelect');
+      var selectMaster = document.getElementById('filterMasterGudang');
+      var selectBatch = document.getElementById('batchGudangSelect');
 
       masterGudang.forEach(function(g) {
         var opt1 = document.createElement('option');
@@ -2009,6 +2151,16 @@
         opt3.value = g;
         opt3.textContent = g;
         selectModal.appendChild(opt3);
+
+        var opt4 = document.createElement('option');
+        opt4.value = g;
+        opt4.textContent = g;
+        selectMaster.appendChild(opt4);
+
+        var opt5 = document.createElement('option');
+        opt5.value = g;
+        opt5.textContent = g;
+        selectBatch.appendChild(opt5);
       });
     }
 
@@ -2100,9 +2252,12 @@
       container.innerHTML = '';
 
       if (filtered.length === 0) {
-        container.innerHTML = '<div class="p-6 text-center text-slate-500 space-y-2">' +
-          '<p>Barang "' + search + '" belum terdaftar di Master Barang.</p>' +
-          '<button type="button" onclick="openMasterModal(\'' + search.replace(/'/g, "\\'") + '\')" class="px-4 py-1.5 rounded-xl bg-amber-500 hover:bg-amber-400 text-slate-950 font-bold text-xs shadow">+ Tambahkan Sebagai Master Barang</button>' +
+        container.innerHTML = '<div class="p-6 text-center text-slate-500 space-y-3">' +
+          '<p class="text-xs">Barang <strong class="text-slate-900">\"' + (search || 'yang dicari') + '\"</strong> belum terdaftar di Master Barang.</p>' +
+          '<div class="flex flex-wrap items-center justify-center gap-2">' +
+            '<button type="button" onclick="openMasterModal(\'' + search.replace(/'/g, "\\'") + '\', true)" class="px-4 py-2 rounded-xl bg-amber-500 hover:bg-amber-400 text-slate-950 font-bold text-xs shadow inline-flex items-center gap-1.5 active:scale-95 transition">+ Tambah Cepat & Langsung Pilih</button>' +
+            '<button type="button" onclick="switchTab(\'master\')" class="px-3.5 py-2 rounded-xl bg-slate-200 hover:bg-slate-300 text-slate-700 font-semibold text-xs transition">Buka Master Barang</button>' +
+          '</div>' +
         '</div>';
         return;
       }
@@ -2130,7 +2285,7 @@
       document.getElementById('cardLine').textContent = item.productLine;
       document.getElementById('cardGudang').textContent = item.gudang;
       document.getElementById('cardNama').textContent = item.namaBarang;
-      document.getElementById('cardStokAwal').textContent = item.stokAkhir + " Unit";
+      document.getElementById('cardStokAwal').textContent = item.stokAkhir + " " + (item.satuan || 'Unit');
 
       updateCardPreview();
     }
@@ -2144,6 +2299,7 @@
     function updateCardPreview() {
       if (!selectedItem) return;
       var qty = parseInt(document.getElementById('inputJumlah').value, 10) || 0;
+      var sat = selectedItem.satuan || 'Unit';
       var label = document.getElementById('cardMutasiLabel');
       var val = document.getElementById('cardMutasiVal');
       var sisa = document.getElementById('cardStokAkhir');
@@ -2151,18 +2307,23 @@
       if (currentTipe === 'MASUK') {
         label.textContent = "MUTASI MASUK";
         val.className = "font-black text-sm text-emerald-600";
-        val.textContent = "+" + qty + " Unit";
-        sisa.textContent = (selectedItem.stokAkhir + qty) + " Unit";
+        val.textContent = "+" + qty + " " + sat;
+        sisa.textContent = (selectedItem.stokAkhir + qty) + " " + sat;
       } else {
         label.textContent = "MUTASI KELUAR";
         val.className = "font-black text-sm text-rose-600";
-        val.textContent = "-" + qty + " Unit";
-        sisa.textContent = Math.max(0, selectedItem.stokAkhir - qty) + " Unit";
+        val.textContent = "-" + qty + " " + sat;
+        sisa.textContent = Math.max(0, selectedItem.stokAkhir - qty) + " " + sat;
       }
     }
 
-    function openMasterModal(initialName) {
+    function openMasterModal(initialName, autoSelect) {
+      autoSelectAfterAdd = !!autoSelect;
       document.getElementById('modalMasterBarang').classList.remove('hidden');
+      document.getElementById('modalMasterTitle').textContent = autoSelect 
+        ? "Tambah Cepat Master Barang & Langsung Pilih" 
+        : "Tambah Master Barang Baru";
+
       if (initialName) {
         document.getElementById('modalNamaInput').value = initialName.toUpperCase();
       }
@@ -2174,6 +2335,7 @@
 
     function closeMasterModal() {
       document.getElementById('modalMasterBarang').classList.add('hidden');
+      autoSelectAfterAdd = false;
     }
 
     function handleMasterSubmit(e) {
@@ -2186,6 +2348,16 @@
 
       if (!nama) {
         alert("Nama barang wajib diisi!");
+        return;
+      }
+
+      // Cek apakah barang sudah ada di gudang yang sama
+      var exists = masterItems.some(function(it) {
+        return it.namaBarang.toLowerCase() === nama.toLowerCase() && it.gudang.toLowerCase() === gudang.toLowerCase();
+      });
+
+      if (exists) {
+        alert("Barang \"" + nama + "\" sudah terdaftar di gudang " + gudang + "!");
         return;
       }
 
@@ -2210,7 +2382,113 @@
       renderTabelLaporan();
       renderTabelMaster();
       updateHeaderBadges();
-      selectItem(newItem);
+
+      if (autoSelectAfterAdd) {
+        switchTab('input');
+        selectItem(newItem);
+      }
+    }
+
+    function openBatchModal() {
+      document.getElementById('modalBatchImport').classList.remove('hidden');
+      document.getElementById('batchTextarea').value = '';
+    }
+
+    function closeBatchModal() {
+      document.getElementById('modalBatchImport').classList.add('hidden');
+    }
+
+    function processBatchImport() {
+      var text = document.getElementById('batchTextarea').value.trim();
+      var targetGudang = document.getElementById('batchGudangSelect').value;
+      var targetLine = document.getElementById('batchLineSelect').value;
+
+      if (!text) {
+        alert("Silakan tempelkan daftar nama barang terlebih dahulu!");
+        return;
+      }
+
+      var lines = text.split('\n').map(function(l) { return l.trim(); }).filter(function(l) { return l.length > 0; });
+      var added = 0;
+
+      lines.forEach(function(line, idx) {
+        var cleanName = line.toUpperCase();
+        var exists = masterItems.some(function(it) {
+          return it.namaBarang.toLowerCase() === cleanName.toLowerCase() && it.gudang === targetGudang;
+        });
+
+        if (!exists && cleanName) {
+          masterItems.unshift({
+            id: "item-batch-" + Date.now() + "-" + idx,
+            depo: "GMB SLO PUSAT",
+            gudang: targetGudang,
+            productLine: targetLine,
+            namaBarang: cleanName,
+            satuan: "Unit",
+            stokAwal: 0,
+            stokAkhir: 0,
+            dataLaku: {}
+          });
+          added++;
+        }
+      });
+
+      localStorage.setItem('gmb_slo_github_inv', JSON.stringify(masterItems));
+
+      alert("Berhasil menambahkan " + added + " barang baru ke Master Barang!");
+      closeBatchModal();
+      filterItems();
+      renderTabelLaporan();
+      renderTabelMaster();
+      updateHeaderBadges();
+    }
+
+    function exportMasterCSV() {
+      var headers = ["NO", "DEPO", "GUDANG", "PRODUCT LINE", "NAMA BARANG", "SATUAN", "STOK AWAL", "STOK AKHIR"];
+      var rows = masterItems.map(function(it, idx) {
+        return [
+          idx + 1,
+          '"' + (it.depo || 'GMB SLO PUSAT') + '"',
+          '"' + it.gudang + '"',
+          '"' + it.productLine + '"',
+          '"' + it.namaBarang.replace(/"/g, '""') + '"',
+          '"' + (it.satuan || 'Unit') + '"',
+          it.stokAwal || 0,
+          it.stokAkhir
+        ];
+      });
+
+      var csvContent = "data:text/csv;charset=utf-8," + [headers.join(",")].concat(rows.map(function(r) { return r.join(","); })).join("\n");
+      var encodedUri = encodeURI(csvContent);
+      var link = document.createElement("a");
+      link.setAttribute("href", encodedUri);
+      link.setAttribute("download", "Master_Barang_GMB_SLO_" + new Date().toISOString().slice(0, 10) + ".csv");
+      document.body.appendChild(link);
+      link.click();
+      document.body.removeChild(link);
+    }
+
+    function navigateToTransaksi(id, actionType) {
+      var it = masterItems.find(function(item) { return item.id === id; });
+      if (it) {
+        switchTab('input');
+        setTipe(actionType);
+        selectItem(it);
+      }
+    }
+
+    function deleteMasterItem(id) {
+      var it = masterItems.find(function(item) { return item.id === id; });
+      if (!it) return;
+
+      if (confirm('Hapus "' + it.namaBarang + '" dari Master Barang?')) {
+        masterItems = masterItems.filter(function(item) { return item.id !== id; });
+        localStorage.setItem('gmb_slo_github_inv', JSON.stringify(masterItems));
+        filterItems();
+        renderTabelLaporan();
+        renderTabelMaster();
+        updateHeaderBadges();
+      }
     }
 
     function handleFormSubmit(e) {
@@ -2251,7 +2529,7 @@
       localStorage.setItem('gmb_slo_github_inv', JSON.stringify(masterItems));
       localStorage.setItem('gmb_slo_github_tx', JSON.stringify(riwayatMutasi));
 
-      alert("Transaksi " + currentTipe + " berhasil dicatat! Stok baru: " + stokSesudah + " Unit.");
+      alert("Transaksi " + currentTipe + " berhasil dicatat! Stok baru: " + stokSesudah + " " + (selectedItem.satuan || 'Unit') + ".");
 
       document.getElementById('inputJumlah').value = "1";
       document.getElementById('inputNoDok').value = "";
@@ -2267,7 +2545,18 @@
 
     function updateHeaderBadges() {
       var totalUnits = masterItems.reduce(function(acc, it) { return acc + it.stokAkhir; }, 0);
+      var habisCount = masterItems.filter(function(it) { return it.stokAkhir <= 0; }).length;
+
       document.getElementById('totalSkuBadge').textContent = masterItems.length + " SKU • " + totalUnits + " Unit Stok";
+      
+      var elMasterCount = document.getElementById('masterCountSku');
+      if (elMasterCount) elMasterCount.textContent = masterItems.length;
+
+      var elMasterStok = document.getElementById('masterCountStok');
+      if (elMasterStok) elMasterStok.textContent = totalUnits;
+
+      var elMasterHabis = document.getElementById('masterCountHabis');
+      if (elMasterHabis) elMasterHabis.textContent = habisCount;
     }
 
     function renderTabelLaporan() {
@@ -2290,7 +2579,8 @@
           '<td class="py-2.5 px-3"><span class="px-1.5 py-0.5 rounded text-[9px] font-black bg-indigo-50 text-indigo-700">' + it.productLine + '</span></td>' +
           '<td class="py-2.5 px-4 font-bold text-slate-900">' + it.namaBarang + '</td>' +
           '<td class="py-2.5 px-3 text-center font-mono font-medium">' + (it.stokAwal || 0) + '</td>' +
-          '<td class="py-2.5 px-3 text-center font-mono font-black text-slate-900">' + it.stokAkhir + '</td>';
+          '<td class="py-2.5 px-3 text-center font-mono font-black text-slate-900">' + it.stokAkhir + '</td>' +
+          '<td class="py-2.5 px-3 text-center"><span class="px-2 py-0.5 rounded text-[10px] font-bold ' + (it.stokAkhir > 0 ? 'bg-emerald-100 text-emerald-800' : 'bg-rose-100 text-rose-800') + '">' + (it.stokAkhir > 0 ? 'Tersedia' : 'Habis') + '</span></td>';
         body.appendChild(tr);
       });
     }
@@ -2299,15 +2589,39 @@
       var body = document.getElementById('tabelMasterBody');
       body.innerHTML = '';
 
-      masterItems.forEach(function(it, idx) {
+      var search = (document.getElementById('filterMasterSearch') ? document.getElementById('filterMasterSearch').value : '').toLowerCase().trim();
+      var gudang = document.getElementById('filterMasterGudang') ? document.getElementById('filterMasterGudang').value : '';
+      var line = document.getElementById('filterMasterLine') ? document.getElementById('filterMasterLine').value : '';
+
+      var filtered = masterItems.filter(function(it) {
+        var matchG = !gudang || it.gudang === gudang;
+        var matchL = !line || it.productLine === line;
+        var matchS = !search || it.namaBarang.toLowerCase().indexOf(search) !== -1;
+        return matchG && matchL && matchS;
+      });
+
+      if (filtered.length === 0) {
+        body.innerHTML = '<tr><td colspan="9" class="p-6 text-center text-slate-400">Tidak ada barang yang cocok dengan filter.</td></tr>';
+        return;
+      }
+
+      filtered.forEach(function(it, idx) {
         var tr = document.createElement('tr');
         tr.className = "hover:bg-slate-50";
         tr.innerHTML = '<td class="py-2.5 px-3 text-center font-mono text-slate-400">' + (idx + 1) + '</td>' +
           '<td class="py-2.5 px-3 whitespace-nowrap"><span class="bg-slate-100 px-2 py-0.5 rounded text-[10px] font-semibold">' + it.gudang + '</span></td>' +
           '<td class="py-2.5 px-3"><span class="px-1.5 py-0.5 rounded text-[9px] font-black bg-indigo-50 text-indigo-700">' + it.productLine + '</span></td>' +
           '<td class="py-2.5 px-4 font-bold text-slate-900">' + it.namaBarang + '</td>' +
-          '<td class="py-2.5 px-3 text-center text-slate-500">' + (it.satuan || 'Unit') + '</td>' +
-          '<td class="py-2.5 px-3 text-center font-mono font-black text-slate-900">' + it.stokAkhir + '</td>';
+          '<td class="py-2.5 px-3 text-center text-slate-500 font-medium">' + (it.satuan || 'Unit') + '</td>' +
+          '<td class="py-2.5 px-3 text-center font-mono font-medium text-slate-600">' + (it.stokAwal || 0) + '</td>' +
+          '<td class="py-2.5 px-3 text-center font-mono font-black text-slate-900">' + it.stokAkhir + '</td>' +
+          '<td class="py-2.5 px-3 text-center"><span class="px-2 py-0.5 rounded text-[10px] font-bold ' + (it.stokAkhir > 0 ? 'bg-emerald-100 text-emerald-800' : 'bg-rose-100 text-rose-800') + '">' + (it.stokAkhir > 0 ? 'Tersedia' : 'Habis') + '</span></td>' +
+          '<td class="py-2.5 px-3 text-center whitespace-nowrap">' +
+            '<div class="flex items-center justify-center gap-1.5">' +
+              '<button type="button" onclick="navigateToTransaksi(\'' + it.id + '\', \'MASUK\')" class="px-2 py-1 rounded bg-emerald-50 hover:bg-emerald-100 text-emerald-700 font-bold text-[10px]">+ Masuk</button>' +
+              '<button type="button" onclick="deleteMasterItem(\'' + it.id + '\')" class="p-1 rounded text-slate-400 hover:text-rose-600" title="Hapus Barang">🗑️</button>' +
+            '</div>' +
+          '</td>';
         body.appendChild(tr);
       });
     }
